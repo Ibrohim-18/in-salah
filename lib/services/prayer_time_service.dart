@@ -1,4 +1,5 @@
 import 'package:adhan/adhan.dart' as adhan;
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/prayer.dart';
 import '../models/user_settings.dart';
@@ -207,7 +208,9 @@ class PrayerTimeService {
           ),
         ),
       ];
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[PrayerTimeService] geolocation/calc failed: $e');
+      debugPrintStack(stackTrace: st, label: 'PrayerTimeService');
       return _fallbackPrayers(targetDate, resolvedSettings);
     }
   }
