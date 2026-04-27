@@ -155,6 +155,8 @@
   "standardNotification": "إشعار قياسي",
   "adhanMakkahFull": "أذان مكة",
   "adhanMadinaFull": "أذان المدينة",
+  "preview": "استماع",
+  "stop": "إيقاف",
 
   "iqamaTimes": "أوقات الإقامة",
   "minutesAfterAdhanSection": "الدقائق بعد الأذان",

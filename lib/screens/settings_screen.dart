@@ -1,6 +1,7 @@
 import 'dart:io';
 import '../services/insforge_service.dart';
 import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -1448,6 +1449,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final t = AppLocalizations.of(context);
     final settings = provider.settings.prayerSettings[prayer] ??
         const PrayerNotificationSettings();
+    final AudioPlayer player = AudioPlayer();
+    String? playingValue;
 
     showModalBottomSheet(
       context: context,
@@ -1456,80 +1459,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        Widget buildOption(String label, String value) {
-          final isSelected = settings.sound == value;
-          return ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            tileColor: isSelected
-                ? AppTheme.primary.withValues(alpha: 0.08)
-                : null,
-            title: Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
-              ),
-            ),
-            trailing: isSelected
-                ? const Icon(
-                    Icons.check_rounded,
-                    color: AppTheme.primary,
-                    size: 20,
-                  )
-                : null,
-            onTap: () {
-              final newMap = Map<String, PrayerNotificationSettings>.from(
-                provider.settings.prayerSettings,
-              );
-              newMap[prayer] = PrayerNotificationSettings(
-                isEnabled: settings.isEnabled,
-                sound: value,
-              );
-              provider.updateSettings(
-                provider.settings.copyWith(prayerSettings: newMap),
-              );
-              Navigator.maybePop(ctx);
-            },
-          );
-        }
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            Future<void> togglePreview(String value, String assetPath) async {
+              if (playingValue == value) {
+                await player.stop();
+                if (!ctx.mounted) return;
+                setSheetState(() => playingValue = null);
+                return;
+              }
+              await player.stop();
+              if (!ctx.mounted) return;
+              setSheetState(() => playingValue = value);
+              await player.play(AssetSource(assetPath));
+              player.onPlayerComplete.first.then((_) {
+                if (!ctx.mounted) return;
+                if (playingValue == value) {
+                  setSheetState(() => playingValue = null);
+                }
+              }).catchError((_) {});
+            }
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceBorder,
-                    borderRadius: BorderRadius.circular(2),
+            Widget buildOption(
+              String label,
+              String value, {
+              String? assetPath,
+            }) {
+              final isSelected = settings.sound == value;
+              final isPlaying = playingValue == value;
+              return ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                tileColor: isSelected
+                    ? AppTheme.primary.withValues(alpha: 0.08)
+                    : null,
+                leading: assetPath == null
+                    ? const SizedBox(width: 40)
+                    : Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          tooltip: isPlaying
+                              ? t.translate('stop')
+                              : t.translate('preview'),
+                          icon: Icon(
+                            isPlaying
+                                ? Icons.stop_rounded
+                                : Icons.play_arrow_rounded,
+                            size: 22,
+                            color: AppTheme.primary,
+                          ),
+                          onPressed: () => togglePreview(value, assetPath),
+                        ),
+                      ),
+                title: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected
+                        ? AppTheme.primary
+                        : AppTheme.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  '${t.translate('adhanSoundTitle')} · ${_prayerDisplayName(prayer, t)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
+                trailing: isSelected
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: AppTheme.primary,
+                        size: 20,
+                      )
+                    : null,
+                onTap: () {
+                  final newMap =
+                      Map<String, PrayerNotificationSettings>.from(
+                    provider.settings.prayerSettings,
+                  );
+                  newMap[prayer] = PrayerNotificationSettings(
+                    isEnabled: settings.isEnabled,
+                    sound: value,
+                  );
+                  provider.updateSettings(
+                    provider.settings.copyWith(prayerSettings: newMap),
+                  );
+                  Navigator.maybePop(ctx);
+                },
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '${t.translate('adhanSoundTitle')} · ${_prayerDisplayName(prayer, t)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    buildOption(t.translate('standardNotification'), 'default'),
+                    buildOption(
+                      t.translate('adhanMakkahFull'),
+                      'adhan_makkah',
+                      assetPath: 'audio/adhan_makkah.mp3',
+                    ),
+                    buildOption(
+                      t.translate('adhanMadinaFull'),
+                      'adhan_madina',
+                      assetPath: 'audio/adhan_madina.mp3',
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                buildOption(t.translate('standardNotification'), 'default'),
-                buildOption(t.translate('adhanMakkahFull'), 'adhan_makkah'),
-                buildOption(t.translate('adhanMadinaFull'), 'adhan_madina'),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
-    );
+    ).whenComplete(() async {
+      await player.dispose();
+    });
   }
 
   void _showLanguagePicker(BuildContext context, AppProvider provider) {

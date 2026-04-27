@@ -155,6 +155,8 @@
   "standardNotification": "Standard notification",
   "adhanMakkahFull": "Adhan Makkah",
   "adhanMadinaFull": "Adhan Madina",
+  "preview": "Preview",
+  "stop": "Stop",
 
   "iqamaTimes": "Iqama times",
   "minutesAfterAdhanSection": "Minutes after adhan",
