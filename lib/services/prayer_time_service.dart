@@ -1,12 +1,16 @@
 import 'package:adhan/adhan.dart' as adhan;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/prayer.dart';
 import '../models/user_settings.dart';
 import 'settings_service.dart';
 
 class PrayerTimeService {
   final SettingsService _settingsService = SettingsService();
+
+  static const _cachedLatKey = 'prayer_last_known_lat';
+  static const _cachedLonKey = 'prayer_last_known_lon';
 
   Future<Position> getCurrentPosition() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -26,7 +30,29 @@ class PrayerTimeService {
       return Future.error('Location permissions are permanently denied');
     }
 
-    return Geolocator.getCurrentPosition();
+    final lastKnown = await Geolocator.getLastKnownPosition();
+    if (lastKnown != null) return lastKnown;
+
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.medium,
+        timeLimit: Duration(seconds: 10),
+      ),
+    );
+  }
+
+  Future<void> _cachePosition(Position position) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_cachedLatKey, position.latitude);
+    await prefs.setDouble(_cachedLonKey, position.longitude);
+  }
+
+  Future<adhan.Coordinates?> _readCachedCoordinates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble(_cachedLatKey);
+    final lon = prefs.getDouble(_cachedLonKey);
+    if (lat == null || lon == null) return null;
+    return adhan.Coordinates(lat, lon);
   }
 
   adhan.CalculationMethod _resolveCalculationMethod(String value) {
@@ -141,12 +167,27 @@ class PrayerTimeService {
   }) async {
     final resolvedSettings = settings ?? await _settingsService.loadSettings();
 
+    adhan.Coordinates? coordinates;
     try {
       final resolvedPosition = position ?? await getCurrentPosition();
-      final coordinates = adhan.Coordinates(
+      coordinates = adhan.Coordinates(
         resolvedPosition.latitude,
         resolvedPosition.longitude,
       );
+      await _cachePosition(resolvedPosition);
+    } catch (e) {
+      debugPrint('[PrayerTimeService] geolocation failed: $e');
+      coordinates = await _readCachedCoordinates();
+      if (coordinates == null) {
+        return _fallbackPrayers(targetDate, resolvedSettings);
+      }
+      debugPrint(
+        '[PrayerTimeService] using cached coordinates '
+        '${coordinates.latitude}, ${coordinates.longitude}',
+      );
+    }
+
+    try {
       final params = _resolveCalculationMethod(
         resolvedSettings.calculationMethod,
       ).getParameters();

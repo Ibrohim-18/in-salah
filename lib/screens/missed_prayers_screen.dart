@@ -198,7 +198,7 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              AppUtils.formatHijriMonthYear(context, _viewMonth),
+              AppUtils.formatHijriMonthYear(context, _selectedDate),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.4),
                 fontSize: 11.5,
@@ -855,7 +855,10 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        AppUtils.formatHijriMonthYear(context, _viewMonth),
+                        AppUtils.formatHijriMonthYear(
+                          context,
+                          DateTime(_viewMonth.year, _viewMonth.month, 15),
+                        ),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.4),
                           fontSize: 11,
