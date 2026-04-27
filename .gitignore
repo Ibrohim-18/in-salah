@@ -44,6 +44,12 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Signing secrets — NEVER commit these
+android/key.properties
+android/app/upload-keystore.jks
+android/app/*.jks
+SECRETS.md
+
 # InsForge & AI agent skills
 .insforge
 .agent
