@@ -35,7 +35,7 @@ class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with Single
   @override
   void dispose() {
     _controller.dispose();
-    super.initState();
+    super.dispose();
   }
 
   @override

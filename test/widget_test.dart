@@ -12,7 +12,9 @@ import 'package:in_salah/main.dart';
 
 void main() {
   testWidgets('App shows startup loading indicator', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      const MyApp(hasSeenOnboarding: false, initialLocale: 'system'),
+    );
 
     expect(find.byType(MaterialApp), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);

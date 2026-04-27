@@ -8,7 +8,6 @@ class AppTheme {
   static const _warningStart = Color(0xFFFFB45C);
   static const _warningEnd = Color(0xFFFF6B2C);
   static const _danger = Color(0xFFFF5252);
-  static const _info = Color(0xFF9BA2FF); // Soft Purple/Lavender for completed
   static const _surface = Color(0xFF0F1219);
   static const _surfaceRaised = Color(0xFF141821);
   static const _surfaceAlt = Color(0xFF1B212D);
