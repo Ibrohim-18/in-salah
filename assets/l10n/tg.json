@@ -351,6 +351,9 @@
   "unexpectedError": "Хатои ғайричашмдошт рух дод",
   "noInternet": "Пайвасти интернет нест. Шабакаро санҷед ва аз нав кӯшиш кунед.",
   "cantOpenLink": "Кушодани истинод имкон надорад.",
+  "emailHint": "you@example.com",
+  "passwordHint": "На камтар аз 8 аломат",
+  "verificationCodeHint": "Рамзи 6-рақама аз почта",
   "recentAccounts": "Ҳисобҳои охирин",
 
   "checkYourEmail": "Почтаро тафтиш кунед",

@@ -351,6 +351,9 @@
   "unexpectedError": "An unexpected error occurred",
   "noInternet": "No internet connection. Check your network and try again.",
   "cantOpenLink": "Can't open the link.",
+  "emailHint": "you@example.com",
+  "passwordHint": "At least 8 characters",
+  "verificationCodeHint": "6-digit code from email",
   "recentAccounts": "Recent accounts",
 
   "checkYourEmail": "Check Your Email",

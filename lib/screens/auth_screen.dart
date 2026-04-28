@@ -243,6 +243,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   _buildTextField(
                                     controller: _emailController,
                                     label: t.translate('emailAddress'),
+                                    hint: t.translate('emailHint'),
                                     icon: Icons.alternate_email_rounded,
                                     keyboardType: TextInputType.emailAddress,
                                   ),
@@ -255,7 +256,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                   _buildTextField(
                                     controller: _passwordController,
                                     label: t.translate('password'),
-                                    icon: Icons.password_rounded,
+                                    hint: t.translate('passwordHint'),
+                                    icon: Icons.lock_outline_rounded,
                                     isPassword: true,
                                     focusNode: _passwordFocusNode,
                                   ),
@@ -318,6 +320,7 @@ class _AuthScreenState extends State<AuthScreen> {
         _buildTextField(
           controller: _codeController,
           label: t.translate('verificationCode'),
+          hint: t.translate('verificationCodeHint'),
           icon: Icons.pin_rounded,
           keyboardType: TextInputType.number,
         ),
@@ -532,52 +535,19 @@ class _AuthScreenState extends State<AuthScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    String? hint,
     bool isPassword = false,
     TextInputType? keyboardType,
     FocusNode? focusNode,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.8),
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceRaised.withValues(alpha: 0.70),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.surfaceBorder),
-          ),
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            obscureText: isPassword,
-            keyboardType: keyboardType,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              prefixIcon: Icon(
-                icon,
-                color: Colors.white.withValues(alpha: 0.5),
-                size: 18,
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 14,
-              ),
-            ),
-          ),
-        ),
-      ],
+    return _AuthTextField(
+      controller: controller,
+      label: label,
+      hint: hint,
+      icon: icon,
+      isPassword: isPassword,
+      keyboardType: keyboardType,
+      focusNode: focusNode,
     );
   }
 
@@ -718,6 +688,127 @@ class _AuthScreenState extends State<AuthScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AuthTextField extends StatefulWidget {
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+  final IconData icon;
+  final bool isPassword;
+  final TextInputType? keyboardType;
+  final FocusNode? focusNode;
+
+  const _AuthTextField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.hint,
+    this.isPassword = false,
+    this.keyboardType,
+    this.focusNode,
+  });
+
+  @override
+  State<_AuthTextField> createState() => _AuthTextFieldState();
+}
+
+class _AuthTextFieldState extends State<_AuthTextField> {
+  late final FocusNode _focusNode;
+  bool _ownsFocusNode = false;
+  bool _focused = false;
+  bool _obscure = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = widget.focusNode ?? FocusNode();
+    _ownsFocusNode = widget.focusNode == null;
+    _focusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    if (_ownsFocusNode) _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (!mounted) return;
+    setState(() => _focused = _focusNode.hasFocus);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = _focused
+        ? AppTheme.primary.withValues(alpha: 0.55)
+        : AppTheme.surfaceBorder;
+    final iconColor = _focused
+        ? AppTheme.primary
+        : Colors.white.withValues(alpha: 0.5);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+            widget.label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.8),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceRaised.withValues(alpha: 0.70),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: borderColor, width: _focused ? 1.5 : 1),
+          ),
+          child: TextField(
+            controller: widget.controller,
+            focusNode: _focusNode,
+            obscureText: widget.isPassword && _obscure,
+            keyboardType: widget.keyboardType,
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+            cursorColor: AppTheme.primary,
+            decoration: InputDecoration(
+              hintText: widget.hint,
+              hintStyle: GoogleFonts.inter(
+                color: Colors.white.withValues(alpha: 0.32),
+                fontSize: 14,
+              ),
+              prefixIcon: Icon(widget.icon, color: iconColor, size: 18),
+              suffixIcon: widget.isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        _obscure
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: Colors.white.withValues(alpha: 0.5),
+                        size: 18,
+                      ),
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                      splashRadius: 18,
+                    )
+                  : null,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

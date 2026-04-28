@@ -351,6 +351,9 @@
   "unexpectedError": "Произошла непредвиденная ошибка",
   "noInternet": "Нет подключения к интернету. Проверьте сеть и попробуйте снова.",
   "cantOpenLink": "Не удалось открыть ссылку.",
+  "emailHint": "you@example.com",
+  "passwordHint": "Не менее 8 символов",
+  "verificationCodeHint": "6-значный код из письма",
   "recentAccounts": "Недавние аккаунты",
 
   "checkYourEmail": "Проверьте почту",
