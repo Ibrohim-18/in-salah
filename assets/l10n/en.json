@@ -335,8 +335,8 @@
 
   "welcomeBack": "Welcome Back",
   "createAccount": "Create Account",
-  "welcomeBackBadge": "WELCOME BACK",
-  "createAccountBadge": "CREATE ACCOUNT",
+  "welcomeBackBadge": "SIGN IN",
+  "createAccountBadge": "SIGN UP",
   "signInToSync": "Sign in to sync your prayers",
   "joinCommunity": "Join the community of In Salah",
   "emailAddress": "Email Address",

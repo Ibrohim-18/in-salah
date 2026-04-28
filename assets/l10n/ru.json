@@ -335,8 +335,8 @@
 
   "welcomeBack": "С возвращением",
   "createAccount": "Создать аккаунт",
-  "welcomeBackBadge": "С ВОЗВРАЩЕНИЕМ",
-  "createAccountBadge": "СОЗДАТЬ АККАУНТ",
+  "welcomeBackBadge": "ВХОД",
+  "createAccountBadge": "РЕГИСТРАЦИЯ",
   "signInToSync": "Войдите для синхронизации намазов",
   "joinCommunity": "Присоединяйтесь к сообществу In Salah",
   "emailAddress": "Email адрес",

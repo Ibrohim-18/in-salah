@@ -335,8 +335,8 @@
 
   "welcomeBack": "مرحباً بعودتك",
   "createAccount": "إنشاء حساب",
-  "welcomeBackBadge": "مرحباً بعودتك",
-  "createAccountBadge": "إنشاء حساب",
+  "welcomeBackBadge": "تسجيل الدخول",
+  "createAccountBadge": "حساب جديد",
   "signInToSync": "سجل الدخول لمزامنة صلواتك",
   "joinCommunity": "انضم إلى مجتمع In Salah",
   "emailAddress": "البريد الإلكتروني",
