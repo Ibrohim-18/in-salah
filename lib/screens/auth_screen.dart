@@ -743,12 +743,21 @@ class _AuthTextFieldState extends State<_AuthTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = _focused
-        ? AppTheme.primary.withValues(alpha: 0.55)
-        : AppTheme.surfaceBorder;
     final iconColor = _focused
         ? AppTheme.primary
         : Colors.white.withValues(alpha: 0.5);
+    const radius = 14.0;
+    final idleBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(radius),
+      borderSide: BorderSide(color: AppTheme.surfaceBorder, width: 1.2),
+    );
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(radius),
+      borderSide: BorderSide(
+        color: AppTheme.primary.withValues(alpha: 0.55),
+        width: 1.2,
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,57 +774,44 @@ class _AuthTextFieldState extends State<_AuthTextField> {
             ),
           ),
         ),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOut,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceRaised.withValues(alpha: 0.70),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: borderColor, width: 1.2),
-            boxShadow: _focused
-                ? [
-                    BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 14,
-                      spreadRadius: 0,
-                    ),
-                  ]
-                : const [],
-          ),
-          child: TextField(
-            controller: widget.controller,
-            focusNode: _focusNode,
-            obscureText: widget.isPassword && _obscure,
-            keyboardType: widget.keyboardType,
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-            cursorColor: AppTheme.primary,
-            decoration: InputDecoration(
-              hintText: widget.hint,
-              hintStyle: GoogleFonts.inter(
-                color: Colors.white.withValues(alpha: 0.32),
-                fontSize: 14,
-              ),
-              prefixIcon: Icon(widget.icon, color: iconColor, size: 18),
-              suffixIcon: widget.isPassword
-                  ? IconButton(
-                      icon: Icon(
-                        _obscure
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: Colors.white.withValues(alpha: 0.5),
-                        size: 18,
-                      ),
-                      onPressed: () => setState(() => _obscure = !_obscure),
-                      splashRadius: 18,
-                    )
-                  : null,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 14,
-              ),
+        TextField(
+          controller: widget.controller,
+          focusNode: _focusNode,
+          obscureText: widget.isPassword && _obscure,
+          keyboardType: widget.keyboardType,
+          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          cursorColor: AppTheme.primary,
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: AppTheme.surfaceRaised.withValues(alpha: 0.70),
+            hintText: widget.hint,
+            hintStyle: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.32),
+              fontSize: 14,
             ),
+            prefixIcon: Icon(widget.icon, color: iconColor, size: 18),
+            suffixIcon: widget.isPassword
+                ? IconButton(
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                    splashRadius: 18,
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 16,
+            ),
+            border: idleBorder,
+            enabledBorder: idleBorder,
+            focusedBorder: focusedBorder,
+            disabledBorder: idleBorder,
           ),
         ),
       ],
