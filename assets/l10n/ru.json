@@ -349,6 +349,7 @@
   "alreadyHaveAccount": "Уже есть аккаунт? ",
   "pleaseFillAllFields": "Заполните все поля",
   "unexpectedError": "Произошла непредвиденная ошибка",
+  "noInternet": "Нет подключения к интернету. Проверьте сеть и попробуйте снова.",
   "recentAccounts": "Недавние аккаунты",
 
   "checkYourEmail": "Проверьте почту",

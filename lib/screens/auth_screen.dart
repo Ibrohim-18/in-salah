@@ -1,6 +1,9 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import '../services/login_history_service.dart';
 import '../l10n/app_localizations.dart';
 import '../services/insforge_service.dart';
@@ -99,6 +102,12 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on InsforgeAuthException catch (e) {
       setState(() => _error = e.message);
+    } on SocketException {
+      setState(() => _error = '_no_internet_');
+    } on http.ClientException {
+      setState(() => _error = '_no_internet_');
+    } on TimeoutException {
+      setState(() => _error = '_no_internet_');
     } catch (e) {
       setState(() => _error = '_unexpected_error_');
     } finally {
@@ -120,6 +129,12 @@ class _AuthScreenState extends State<AuthScreen> {
       await _rememberCurrentEmail();
     } on InsforgeAuthException catch (e) {
       setState(() => _error = e.message);
+    } on SocketException {
+      setState(() => _error = '_no_internet_');
+    } on http.ClientException {
+      setState(() => _error = '_no_internet_');
+    } on TimeoutException {
+      setState(() => _error = '_no_internet_');
     } catch (e) {
       setState(() => _error = '_unexpected_error_');
     } finally {
@@ -131,6 +146,7 @@ class _AuthScreenState extends State<AuthScreen> {
     return switch (error) {
       '_fill_all_fields_' => t.translate('pleaseFillAllFields'),
       '_unexpected_error_' => t.translate('unexpectedError'),
+      '_no_internet_' => t.translate('noInternet'),
       _ => error,
     };
   }

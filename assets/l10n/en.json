@@ -349,6 +349,7 @@
   "alreadyHaveAccount": "Already have an account? ",
   "pleaseFillAllFields": "Please fill in all fields",
   "unexpectedError": "An unexpected error occurred",
+  "noInternet": "No internet connection. Check your network and try again.",
   "recentAccounts": "Recent accounts",
 
   "checkYourEmail": "Check Your Email",
