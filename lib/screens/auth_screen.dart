@@ -768,10 +768,20 @@ class _AuthTextFieldState extends State<_AuthTextField> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           curve: Curves.easeOut,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: AppTheme.surfaceRaised.withValues(alpha: 0.70),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: borderColor, width: _focused ? 1.5 : 1),
+            border: Border.all(color: borderColor, width: 1.2),
+            boxShadow: _focused
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.25),
+                      blurRadius: 14,
+                      spreadRadius: 0,
+                    ),
+                  ]
+                : const [],
           ),
           child: TextField(
             controller: widget.controller,
