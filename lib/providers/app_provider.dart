@@ -91,6 +91,7 @@ class AppProvider extends ChangeNotifier {
   MemoryImage? _avatarImage;
   String? _lastAvatarPath;
   Future<void> _settingsSaveQueue = Future.value();
+  LocationStatus _locationStatus = LocationStatus.available;
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -165,6 +166,7 @@ class AppProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get error => _error;
   MemoryImage? get avatarImage => _avatarImage;
+  LocationStatus get locationStatus => _locationStatus;
 
   void _cacheAvatar() {
     final path = _settings.avatarPath;
@@ -283,8 +285,16 @@ class AppProvider extends ChangeNotifier {
     return count;
   }
 
+  /// Manually trigger a reload of prayer times and counts, e.g. from a
+  /// pull-to-refresh gesture on the Home screen.
+  Future<void> refresh() async {
+    await _loadPrayersAndCount(userId: _currentUser?.id);
+    notifyListeners();
+  }
+
   Future<void> _loadPrayersAndCount({String? userId}) async {
     final prayers = await _prayerTimeService.getPrayers();
+    _locationStatus = _prayerTimeService.lastLocationStatus;
     _todayPrayers = await _withTodayCompletionStatuses(prayers, userId: userId);
     final tomorrowPrayers = await _prayerTimeService.getPrayers(
       DateTime.now().add(const Duration(days: 1)),

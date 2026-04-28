@@ -6,11 +6,16 @@ import '../models/prayer.dart';
 import '../models/user_settings.dart';
 import 'settings_service.dart';
 
+enum LocationStatus { available, cached, unavailable }
+
 class PrayerTimeService {
   final SettingsService _settingsService = SettingsService();
 
   static const _cachedLatKey = 'prayer_last_known_lat';
   static const _cachedLonKey = 'prayer_last_known_lon';
+
+  LocationStatus _lastLocationStatus = LocationStatus.unavailable;
+  LocationStatus get lastLocationStatus => _lastLocationStatus;
 
   Future<Position> getCurrentPosition() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -175,12 +180,15 @@ class PrayerTimeService {
         resolvedPosition.longitude,
       );
       await _cachePosition(resolvedPosition);
+      _lastLocationStatus = LocationStatus.available;
     } catch (e) {
       debugPrint('[PrayerTimeService] geolocation failed: $e');
       coordinates = await _readCachedCoordinates();
       if (coordinates == null) {
+        _lastLocationStatus = LocationStatus.unavailable;
         return _fallbackPrayers(targetDate, resolvedSettings);
       }
+      _lastLocationStatus = LocationStatus.cached;
       debugPrint(
         '[PrayerTimeService] using cached coordinates '
         '${coordinates.latitude}, ${coordinates.longitude}',

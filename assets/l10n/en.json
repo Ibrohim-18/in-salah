@@ -157,6 +157,8 @@
   "adhanMadinaFull": "Adhan Madina",
   "preview": "Preview",
   "stop": "Stop",
+  "locationBannerCached": "Showing prayer times for last known location. Tap to refresh.",
+  "locationBannerUnavailable": "Enable location to show accurate prayer times. Tap to allow.",
 
   "iqamaTimes": "Iqama times",
   "minutesAfterAdhanSection": "Minutes after adhan",

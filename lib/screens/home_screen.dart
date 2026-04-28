@@ -2,9 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../l10n/app_localizations.dart';
 import '../models/prayer.dart';
 import '../providers/app_provider.dart';
+import '../services/prayer_time_service.dart';
 import '../utils/theme.dart';
 import '../utils/utils.dart';
 import '../widgets/liquid_background.dart';
@@ -62,7 +66,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               }
 
-              return CustomScrollView(
+              return RefreshIndicator(
+                color: AppTheme.primary,
+                backgroundColor: AppTheme.surface,
+                onRefresh: () => provider.refresh(),
+                child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
@@ -71,6 +82,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           _buildHijriDateHeader(context, now),
                           const SizedBox(height: 10),
+                          if (provider.locationStatus != LocationStatus.available)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _buildLocationBanner(
+                                context,
+                                provider,
+                                t,
+                              ),
+                            ),
                           _buildFocusPanel(context, nextPrayer, now, provider, t),
                           const SizedBox(height: 14),
                           _buildPrayerSectionHeader(provider, t),
@@ -113,9 +133,60 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
+                ),
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationBanner(
+    BuildContext context,
+    AppProvider provider,
+    AppLocalizations t,
+  ) {
+    final isCached = provider.locationStatus == LocationStatus.cached;
+    final messageKey =
+        isCached ? 'locationBannerCached' : 'locationBannerUnavailable';
+    final color = isCached ? AppTheme.primary : AppTheme.danger;
+
+    return GestureDetector(
+      onTap: () async {
+        final permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.deniedForever) {
+          await openAppSettings();
+        } else {
+          await Geolocator.requestPermission();
+        }
+        await provider.refresh();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.location_off_rounded, color: color, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                t.translate(messageKey),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right_rounded, color: color, size: 18),
+          ],
         ),
       ),
     );

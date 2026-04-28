@@ -157,6 +157,8 @@
   "adhanMadinaFull": "أذان المدينة",
   "preview": "استماع",
   "stop": "إيقاف",
+  "locationBannerCached": "يتم عرض مواقيت الصلاة لآخر موقع معروف. اضغط للتحديث.",
+  "locationBannerUnavailable": "فعّل الموقع لعرض مواقيت الصلاة بدقة. اضغط للسماح.",
 
   "iqamaTimes": "أوقات الإقامة",
   "minutesAfterAdhanSection": "الدقائق بعد الأذان",
