@@ -55,7 +55,8 @@ SECRETS.md
 .agent
 .agents
 .augment
-.claude
+.claude/*
+!.claude/skills/
 .cline
 .github/copilot*
 .kilocode

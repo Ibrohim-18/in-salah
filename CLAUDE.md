@@ -60,3 +60,9 @@ lib/
 flutter pub get
 flutter run
 ```
+
+## Release workflow rule
+After any code change, commit and push immediately, then **stop and ask
+the user** whether to produce a new release build. Never bump
+`pubspec.yaml` `version:` or run `flutter build appbundle` on your own.
+Full rules are in [release-build skill](.claude/skills/release-build/SKILL.md).
