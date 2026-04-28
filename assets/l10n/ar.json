@@ -159,6 +159,10 @@
   "stop": "إيقاف",
   "locationBannerCached": "يتم عرض مواقيت الصلاة لآخر موقع معروف. اضغط للتحديث.",
   "locationBannerUnavailable": "فعّل الموقع لعرض مواقيت الصلاة بدقة. اضغط للسماح.",
+  "allPrayersDoneToday": "الحمد لله — تم أداء الصلوات الخمس اليوم.",
+  "share": "مشاركة",
+  "shareText": "الحمد لله، أديت جميع الصلوات الخمس اليوم مع تطبيق In Salah.",
+  "shareTextWithStreak": "الحمد لله، اكتملت الصلوات الخمس اليوم — سلسلة {streak} أيام متتالية مع In Salah.",
 
   "iqamaTimes": "أوقات الإقامة",
   "minutesAfterAdhanSection": "الدقائق بعد الأذان",

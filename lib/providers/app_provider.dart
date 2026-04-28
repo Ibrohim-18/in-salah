@@ -501,7 +501,10 @@ class AppProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> togglePrayerCompletion(
+  /// Toggles a prayer's completion status. Returns `true` when this toggle
+  /// is the one that completed all five of today's prayers — useful for
+  /// the Home screen to fire a celebratory animation/SnackBar.
+  Future<bool> togglePrayerCompletion(
     String prayerName,
     DateTime date,
     bool completed,
@@ -509,6 +512,9 @@ class AppProvider extends ChangeNotifier {
     final userId = _currentUser?.id;
     final isToday = _isSameDay(date, DateTime.now());
     int todayPrayerIndex = -1;
+    final wasAllDone =
+        isToday && _todayPrayers.isNotEmpty &&
+        _todayPrayers.every((p) => p.isCompleted);
 
     if (isToday) {
       todayPrayerIndex = _todayPrayers.indexWhere((p) => p.name == prayerName);
@@ -522,7 +528,7 @@ class AppProvider extends ChangeNotifier {
             userId: userId,
           );
 
-    if (previousCompleted == completed) return;
+    if (previousCompleted == completed) return false;
 
     HapticFeedback.selectionClick();
 
@@ -561,6 +567,11 @@ class AppProvider extends ChangeNotifier {
       );
       _currentStreak = await _calculateStreak(userId: userId);
       notifyListeners();
+
+      final allDoneNow = isToday &&
+          _todayPrayers.isNotEmpty &&
+          _todayPrayers.every((p) => p.isCompleted);
+      return allDoneNow && !wasAllDone;
     } catch (e) {
       if (todayPrayerIndex >= 0 && previousPrayer != null) {
         _todayPrayers = List<Prayer>.from(_todayPrayers);
@@ -571,6 +582,7 @@ class AppProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       debugPrint('Error toggling prayer completion: $e');
+      return false;
     }
   }
 

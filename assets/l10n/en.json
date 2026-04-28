@@ -159,6 +159,10 @@
   "stop": "Stop",
   "locationBannerCached": "Showing prayer times for last known location. Tap to refresh.",
   "locationBannerUnavailable": "Enable location to show accurate prayer times. Tap to allow.",
+  "allPrayersDoneToday": "Alhamdulillah — all 5 prayers complete today.",
+  "share": "Share",
+  "shareText": "Alhamdulillah, I completed all 5 prayers today with In Salah.",
+  "shareTextWithStreak": "Alhamdulillah, all 5 prayers done today — {streak}-day streak with In Salah.",
 
   "iqamaTimes": "Iqama times",
   "minutesAfterAdhanSection": "Minutes after adhan",

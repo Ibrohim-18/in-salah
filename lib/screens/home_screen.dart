@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/prayer.dart';
@@ -128,12 +130,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           isFirst: index == 0,
                           isLast: index == provider.todayPrayers.length - 1,
                           onTap: !isFuture
-                              ? () {
-                                  provider.togglePrayerCompletion(
+                              ? () async {
+                                  final achievedAll =
+                                      await provider.togglePrayerCompletion(
                                     prayer.name,
                                     prayer.time,
                                     !prayer.isCompleted,
                                   );
+                                  if (achievedAll && context.mounted) {
+                                    _celebrateAllPrayersDone(context, provider);
+                                  }
                                 }
                               : null,
                         );
@@ -149,6 +155,52 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  void _celebrateAllPrayersDone(BuildContext context, AppProvider provider) {
+    final t = AppLocalizations.of(context);
+    HapticFeedback.heavyImpact();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: AppTheme.primary,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  t.translate('allPrayersDoneToday'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: t.translate('share'),
+            textColor: Colors.white,
+            onPressed: () => _shareAchievement(provider, t),
+          ),
+        ),
+      );
+  }
+
+  void _shareAchievement(AppProvider provider, AppLocalizations t) {
+    final streak = provider.currentStreak;
+    final tpl = streak > 1
+        ? t.translate('shareTextWithStreak')
+        : t.translate('shareText');
+    final text = tpl.replaceAll('{streak}', streak.toString());
+    Share.share(text);
   }
 
   Widget _buildLocationBanner(
