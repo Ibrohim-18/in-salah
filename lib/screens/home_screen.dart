@@ -264,6 +264,38 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+        if (provider.currentStreak > 0) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: AppTheme.primary.withValues(alpha: 0.12),
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.local_fire_department_rounded,
+                  size: 13,
+                  color: AppTheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${provider.currentStreak}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show HapticFeedback, rootBundle;
 import 'package:geolocator/geolocator.dart';
 import '../models/user_settings.dart';
 import '../models/prayer.dart';
@@ -92,6 +92,7 @@ class AppProvider extends ChangeNotifier {
   String? _lastAvatarPath;
   Future<void> _settingsSaveQueue = Future.value();
   LocationStatus _locationStatus = LocationStatus.available;
+  int _currentStreak = 0;
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -167,6 +168,7 @@ class AppProvider extends ChangeNotifier {
   String get error => _error;
   MemoryImage? get avatarImage => _avatarImage;
   LocationStatus get locationStatus => _locationStatus;
+  int get currentStreak => _currentStreak;
 
   void _cacheAvatar() {
     final path = _settings.avatarPath;
@@ -312,6 +314,38 @@ class AppProvider extends ChangeNotifier {
     _missedCount = stats['missed'] ?? 0;
     _totalObligatory = stats['total'] ?? 0;
     _lifetimeCompleted = stats['completed'] ?? 0;
+    _currentStreak = await _calculateStreak(userId: userId);
+  }
+
+  /// How many consecutive days (ending today or yesterday) the user has
+  /// completed all five prayers. Today only counts past prayers — future
+  /// prayers don't break the streak.
+  Future<int> _calculateStreak({String? userId}) async {
+    int streak = 0;
+    final now = DateTime.now();
+
+    final todayPast = _todayPrayers.where((p) => p.time.isBefore(now)).toList();
+    DateTime cursor = DateTime(now.year, now.month, now.day);
+
+    if (todayPast.isNotEmpty) {
+      final allDone = todayPast.every((p) => p.isCompleted);
+      if (!allDone) return 0;
+      streak = 1;
+    }
+    cursor = cursor.subtract(const Duration(days: 1));
+
+    for (var i = 0; i < 365; i++) {
+      final statuses = await _missedPrayerService.getDayPrayerStatuses(
+        cursor,
+        userId: userId,
+      );
+      final allDone = statuses.values.every((v) => v);
+      if (!allDone) break;
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    return streak;
   }
 
   /// Loads the active locale's translation map for use outside of widget tree
@@ -490,6 +524,8 @@ class AppProvider extends ChangeNotifier {
 
     if (previousCompleted == completed) return;
 
+    HapticFeedback.selectionClick();
+
     final previousMissedCount = _missedCount;
     final previousLifetimeCompleted = _lifetimeCompleted;
     Prayer? previousPrayer;
@@ -523,6 +559,7 @@ class AppProvider extends ChangeNotifier {
         completed,
         userId: userId,
       );
+      _currentStreak = await _calculateStreak(userId: userId);
       notifyListeners();
     } catch (e) {
       if (todayPrayerIndex >= 0 && previousPrayer != null) {
