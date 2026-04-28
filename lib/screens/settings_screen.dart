@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/app_provider.dart';
 import '../models/user_settings.dart';
@@ -1228,6 +1229,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppTheme.textMuted,
                 size: 18,
               ),
+              onTap: () => _openExternalUrl(
+                'https://ibrohim-18.github.io/in-salah/privacy-policy/',
+              ),
               showDivider: false,
             ),
           ]),
@@ -1767,6 +1771,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ---------------- Helpers reused in sheets ----------------
+
+  Future<void> _openExternalUrl(String url) async {
+    final uri = Uri.parse(url);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).translate('cantOpenLink')),
+          backgroundColor: AppTheme.danger,
+        ),
+      );
+    }
+  }
 
   Widget _buildTile({
     required IconData icon,

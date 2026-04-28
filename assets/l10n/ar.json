@@ -350,6 +350,7 @@
   "pleaseFillAllFields": "يرجى ملء جميع الحقول",
   "unexpectedError": "حدث خطأ غير متوقع",
   "noInternet": "لا يوجد اتصال بالإنترنت. تحقق من الشبكة وحاول مرة أخرى.",
+  "cantOpenLink": "تعذّر فتح الرابط.",
   "recentAccounts": "الحسابات الأخيرة",
 
   "checkYourEmail": "تحقق من بريدك",

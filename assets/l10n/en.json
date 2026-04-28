@@ -350,6 +350,7 @@
   "pleaseFillAllFields": "Please fill in all fields",
   "unexpectedError": "An unexpected error occurred",
   "noInternet": "No internet connection. Check your network and try again.",
+  "cantOpenLink": "Can't open the link.",
   "recentAccounts": "Recent accounts",
 
   "checkYourEmail": "Check Your Email",
