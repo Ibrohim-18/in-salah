@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -32,6 +33,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('notification_permission_asked') ?? false) return;
+      if (!mounted) return;
+      await context.read<AppProvider>().ensureNotificationPermission();
+      await prefs.setBool('notification_permission_asked', true);
     });
   }
 

@@ -200,7 +200,9 @@ class _MyAppState extends State<MyApp> {
                 ? const BrandedLoadingScreen()
                 : !_hasSeenOnboarding
                     ? OnboardingScreen(
-                        onComplete: () {
+                        onComplete: () async {
+                          await provider.ensureNotificationPermission();
+                          if (!mounted) return;
                           setState(() => _hasSeenOnboarding = true);
                         },
                       )
