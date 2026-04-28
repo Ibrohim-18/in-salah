@@ -9,7 +9,7 @@
 
 namespace {
 
-constexpr wchar_t kProtocolScheme[] = L"com.insalah.app";
+constexpr wchar_t kProtocolScheme[] = L"app.insalah.prayer";
 constexpr wchar_t kProtocolDescription[] = L"URL:In Salah Protocol";
 
 std::wstring GetExecutablePath() {

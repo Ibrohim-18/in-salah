@@ -18,7 +18,7 @@ import 'utils/theme.dart';
 import 'widgets/branded_loading_screen.dart';
 
 Future<void> _processOAuthCallback(Uri uri) async {
-  if (uri.scheme != 'com.insalah.app' || uri.host != 'auth-callback') return;
+  if (uri.scheme != 'app.insalah.prayer' || uri.host != 'auth-callback') return;
 
   try {
     await InsforgeService.instance.handleOAuthCallback(uri);

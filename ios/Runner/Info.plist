@@ -18,7 +18,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.insalah.app</string>
+				<string>app.insalah.prayer</string>
 			</array>
 		</dict>
 	</array>

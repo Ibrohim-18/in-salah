@@ -50,7 +50,7 @@ lib/
 - Settings sync: local-first (SharedPreferences) + cloud backup (InsForge user_profiles table)
 - Missed prayers: local SQLite-like storage + cloud sync (missed_prayers_log table)
 - Notifications: scheduled 30 days ahead on settings change
-- OAuth: PKCE flow with deep links (com.insalah.app://auth-callback)
+- OAuth: PKCE flow with deep links (app.insalah.prayer://auth-callback)
 
 ## Known Issues
 - `main.dart:38`: `prefs.remove('hasSeenOnboarding')` resets onboarding every launch (TODO comment says to remove after testing)

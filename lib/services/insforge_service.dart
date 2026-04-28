@@ -160,7 +160,7 @@ class InsforgeAuthException implements Exception {
 
 class InsforgeService {
   static const _base = 'https://fn43ntwx.us-east.insforge.app';
-  static const _oauthRedirectUri = 'com.insalah.app://auth-callback';
+  static const _oauthRedirectUri = 'app.insalah.prayer://auth-callback';
   static const _accessTokenStorageKey = 'insforge_access_token';
   static const _refreshTokenStorageKey = 'insforge_refresh_token';
   static const _pkceVerifierStorageKey = 'insforge_pkce_verifier';

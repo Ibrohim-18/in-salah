@@ -1,4 +1,4 @@
-package com.insalah.app
+package app.insalah.prayer
 
 import io.flutter.embedding.android.FlutterActivity
 
