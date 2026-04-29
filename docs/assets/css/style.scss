@@ -1,0 +1,66 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+// Compact override for Cayman theme — the defaults are sized for landing
+// pages and look oversized on policy/legal documents.
+
+.main-content {
+  max-width: 720px;
+  padding: 1.25rem 1.5rem 3rem;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.main-content h1 {
+  font-size: 1.65rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.main-content h2 {
+  font-size: 1.25rem;
+  margin-top: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.main-content h3 {
+  font-size: 1.05rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.main-content p,
+.main-content li {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.main-content table {
+  font-size: 13.5px;
+}
+
+.main-content table th,
+.main-content table td {
+  padding: 0.45rem 0.65rem;
+}
+
+.main-content blockquote {
+  font-size: 14.5px;
+  padding: 0.5rem 0.9rem;
+  margin: 0.8rem 0;
+}
+
+// Hero on the index page
+.page-header {
+  padding: 1.5rem 1rem;
+}
+
+.project-name {
+  font-size: 1.6rem;
+}
+
+.project-tagline {
+  font-size: 0.95rem;
+}
