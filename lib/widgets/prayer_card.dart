@@ -171,6 +171,7 @@ class PrayerCard extends StatelessWidget {
                         ],
                       ),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
@@ -184,17 +185,18 @@ class PrayerCard extends StatelessWidget {
                                     : isCompleted
                                         ? AppTheme.success
                                         : Colors.white.withValues(alpha: 0.3)),
-                            size: isFuture ? 14 : 20,
+                            size: isFuture ? 14 : (isNext ? 18 : 20),
                           ),
                           if (isNext) ...[
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
                             Text(
                               t.translate('now'),
-                              style: TextStyle(
-                                fontSize: 8,
+                              style: const TextStyle(
+                                fontSize: 7.5,
                                 fontWeight: FontWeight.w900,
                                 color: AppTheme.primary,
-                                letterSpacing: 0.5,
+                                letterSpacing: 0.4,
+                                height: 1.0,
                               ),
                             ),
                           ],
