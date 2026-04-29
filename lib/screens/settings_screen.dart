@@ -101,14 +101,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: t.translate('appInfoAndSetup'),
                       onTap: () => _showAboutSheet(context),
                     ),
-                    _buildDivider(),
-                    _buildRow(
-                      icon: Icons.info_outline_rounded,
-                      accentColor: AppTheme.textSecondary,
-                      title: t.translate('version'),
-                      subtitle: '1.0.0',
-                      trailing: const SizedBox.shrink(),
-                    ),
                   ]),
                   const SizedBox(height: 32),
                   _buildDangerZone(context, t),
@@ -1206,13 +1198,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 18),
           _buildSection(t.translate('appName'), [
-            _buildTile(
-              icon: Icons.info_outline_rounded,
-              title: t.translate('version'),
-              subtitle: '1.0.0',
-              trailing: const SizedBox.shrink(),
-              showDivider: true,
-            ),
             _buildTile(
               icon: Icons.code_rounded,
               title: t.translate('developer'),
