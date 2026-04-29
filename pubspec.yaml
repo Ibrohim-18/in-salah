@@ -34,6 +34,7 @@ dependencies:
   hijri: ^3.0.0
   audioplayers: ^6.1.0
   share_plus: ^10.1.2
+  package_info_plus: ^8.1.2
 
 dev_dependencies:
   flutter_test:

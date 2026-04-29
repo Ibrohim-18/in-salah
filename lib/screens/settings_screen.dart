@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/app_provider.dart';
@@ -22,6 +23,17 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  String? _appVersion;
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (!mounted) return;
+      setState(() => _appVersion = info.version);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,7 +119,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 20),
                   Center(
                     child: Text(
-                      'In Salah · 1.0.0',
+                      _appVersion == null
+                          ? 'In Salah'
+                          : 'In Salah · $_appVersion',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.25),
                         fontSize: 11,
@@ -1110,11 +1124,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: t.translate('prayerReminders'),
       child: Consumer<AppProvider>(
         builder: (context, provider, _) {
-          return _buildSection(
-            t.translate('dailyReminders'),
-            _buildPrayerReminderTiles(provider),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSection(
+                t.translate('dailyReminders'),
+                _buildPrayerReminderTiles(provider),
+              ),
+              const SizedBox(height: 18),
+              _buildSection(t.translate('reminderDiagnostics'), [
+                _buildTile(
+                  icon: Icons.notifications_active_rounded,
+                  title: t.translate('sendTestNotification'),
+                  subtitle: t.translate('sendTestNotificationSubtitle'),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppTheme.textMuted,
+                    size: 18,
+                  ),
+                  onTap: () => _runNotificationTest(context, provider, t),
+                  showDivider: true,
+                ),
+                _buildTile(
+                  icon: Icons.battery_alert_rounded,
+                  title: t.translate('batteryOptimizationTitle'),
+                  subtitle: t.translate('batteryOptimizationSubtitle'),
+                  trailing: const Icon(
+                    Icons.open_in_new_rounded,
+                    color: AppTheme.textMuted,
+                    size: 18,
+                  ),
+                  onTap: () => _openExternalUrl(
+                    'https://dontkillmyapp.com/',
+                  ),
+                  showDivider: false,
+                ),
+              ]),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _runNotificationTest(
+    BuildContext context,
+    AppProvider provider,
+    AppLocalizations t,
+  ) async {
+    final granted = await provider.ensureNotificationPermission();
+    if (!context.mounted) return;
+    if (!granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.translate('notificationsBlocked')),
+          backgroundColor: AppTheme.danger,
+        ),
+      );
+      return;
+    }
+    await provider.sendTestNotification(
+      title: t.translate('testNotificationTitle'),
+      body: t.translate('testNotificationBody'),
+    );
+    final pending = await provider.pendingNotificationCount();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          t
+              .translate('testNotificationQueued')
+              .replaceAll('{n}', pending.toString()),
+        ),
+        backgroundColor: AppTheme.primary,
       ),
     );
   }

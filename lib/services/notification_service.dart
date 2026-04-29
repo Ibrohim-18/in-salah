@@ -272,4 +272,36 @@ class NotificationService {
       );
     }
   }
+
+  /// Returns how many notifications are currently scheduled with the
+  /// system. Useful for confirming `schedulePrayerReminders` actually
+  /// queued anything.
+  Future<int> pendingNotificationCount() async {
+    if (!_initialized) await init();
+    if (kIsWeb) return 0;
+    final pending = await _plugin.pendingNotificationRequests();
+    return pending.length;
+  }
+
+  /// Fires a one-off notification a few seconds in the future so the user
+  /// can verify that permissions, channels and OS battery rules let the
+  /// notification actually surface.
+  Future<void> sendTestNotification({
+    required String title,
+    required String body,
+    String sound = 'default',
+    Duration delay = const Duration(seconds: 5),
+  }) async {
+    if (!_initialized) await init();
+    if (kIsWeb) return;
+
+    final fireAt = DateTime.now().add(delay);
+    await schedulePrayerNotification(
+      id: 99999,
+      title: title,
+      body: body,
+      dateTime: fireAt,
+      sound: sound,
+    );
+  }
 }

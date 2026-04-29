@@ -438,6 +438,20 @@ class AppProvider extends ChangeNotifier {
     return granted;
   }
 
+  Future<int> pendingNotificationCount() {
+    return NotificationService().pendingNotificationCount();
+  }
+
+  Future<void> sendTestNotification({
+    required String title,
+    required String body,
+  }) {
+    return NotificationService().sendTestNotification(
+      title: title,
+      body: body,
+    );
+  }
+
   Timer? _debounceTimer;
 
   Future<void> _persistSettingsLocally(
