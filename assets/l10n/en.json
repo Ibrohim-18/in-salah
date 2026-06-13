@@ -17,6 +17,7 @@
   "medinan": "Medinan",
   "reciter": "Reciter",
   "chooseReciter": "Choose reciter",
+  "chooseFont": "Font",
   "markSurahRead": "Mark surah as read",
   "unmarkSurahRead": "Unmark surah",
   "quranLoadError": "Couldn't load the Quran. Check your connection.",

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -29,6 +30,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   List<Ayah> _ayahs = [];
   Set<int> _read = {};
   String _reciter = 'ar.alafasy';
+  String _fontId = 'madina';
   bool _loading = true;
   bool _error = false;
 
@@ -63,8 +65,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   Future<void> _init() async {
     _reciter = await _progress.getReciter();
+    _fontId = await _progress.getFont();
     _read = await _progress.readAyahsOf(widget.surah.number);
     await _loadSurah();
+  }
+
+  QuranFont get _font =>
+      kQuranFonts.firstWhere((f) => f.id == _fontId, orElse: () => kQuranFonts.first);
+
+  Future<void> _changeFont(String fontId) async {
+    if (fontId == _fontId) return;
+    await _progress.setFont(fontId);
+    setState(() => _fontId = fontId);
   }
 
   Future<void> _loadSurah() async {
@@ -261,6 +273,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ),
               ),
               IconButton(
+                tooltip: t.translate('chooseFont'),
+                onPressed: () => _showFontPicker(t),
+                icon: const Icon(
+                  Icons.font_download_outlined,
+                  color: AppTheme.textMuted,
+                  size: 21,
+                ),
+              ),
+              IconButton(
                 tooltip: t.translate(allRead ? 'unmarkSurahRead' : 'markSurahRead'),
                 onPressed: _toggleWholeSurah,
                 icon: Icon(
@@ -374,24 +395,45 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              Text(
-                ayah.arabic,
-                textAlign: TextAlign.right,
-                textDirection: TextDirection.rtl,
-                style: AppTheme.arabicText(
-                  fontSize: 24,
-                  color: Colors.white,
-                  height: 2.0,
+              SizedBox(
+                width: double.infinity,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: ayah.arabic),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: _AyahEndMarker(
+                            label: _toArabicDigits(ayah.numberInSurah),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                  style: AppTheme.arabicText(
+                    fontSize: 24,
+                    color: Colors.white,
+                    height: 2.0,
+                    fontFamily: _font.family,
+                  ),
                 ),
               ),
               if (ayah.translation != null && ayah.translation!.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                Text(
-                  ayah.translation!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.78),
-                    height: 1.6,
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    ayah.translation!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.78),
+                      height: 1.6,
+                    ),
                   ),
                 ),
               ],
@@ -421,6 +463,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     );
   }
 
+  /// Converts a number to Arabic-Indic digits so the mushaf font can place
+  /// them inside the end-of-ayah rosette (U+06DD).
+  String _toArabicDigits(int n) {
+    const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return n
+        .toString()
+        .split('')
+        .map((c) => eastern[int.parse(c)])
+        .join();
+  }
+
   String _formatDuration(Duration d) {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
@@ -446,35 +499,34 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     final playingAyah =
         hasTrack ? _ayahs[_currentIndex!].numberInSurah : null;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              color: AppTheme.surface.withValues(alpha: 0.88),
-              border: Border.all(
-                color: AppTheme.primary.withValues(alpha: 0.18),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  blurRadius: 18,
-                  offset: const Offset(0, -6),
-                ),
-              ],
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+          decoration: BoxDecoration(
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(28)),
+            color: AppTheme.surface.withValues(alpha: 0.92),
+            border: Border(
+              top: BorderSide(color: AppTheme.primary.withValues(alpha: 0.18)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 24,
+                offset: const Offset(0, -8),
+              ),
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, -6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
         children: [
           // Seek bar with timing.
           Row(
@@ -482,7 +534,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               Text(
                 _formatDuration(_position),
                 style: AppTheme.numericText(
-                  size: 11,
+                  size: 10,
                   color: hasTrack ? Colors.white : AppTheme.textMuted,
                   weight: FontWeight.w700,
                   letterSpacing: 0,
@@ -504,13 +556,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     _seekTo((details.localPosition.dx / width).clamp(0.0, 1.0));
                   },
                   child: SizedBox(
-                    height: 22,
+                    height: 18,
                     child: Center(
                       child: Stack(
                         alignment: Alignment.centerLeft,
                         children: [
                           Container(
-                            height: 5,
+                            height: 4,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(999),
                               color: Colors.white.withValues(alpha: 0.07),
@@ -519,7 +571,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           FractionallySizedBox(
                             widthFactor: fraction,
                             child: Container(
-                              height: 5,
+                              height: 4,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(999),
                                 gradient: LinearGradient(
@@ -543,8 +595,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                             Align(
                               alignment: Alignment((fraction * 2) - 1, 0),
                               child: Container(
-                                width: 11,
-                                height: 11,
+                                width: 9,
+                                height: 9,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Colors.white,
@@ -569,7 +621,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               Text(
                 _formatDuration(_duration),
                 style: AppTheme.numericText(
-                  size: 11,
+                  size: 10,
                   color: AppTheme.textMuted,
                   weight: FontWeight.w600,
                   letterSpacing: 0,
@@ -577,7 +629,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
@@ -589,19 +641,19 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           ? '${t.translate('reciter')} · ${widget.surah.number}:$playingAyah'
                           : t.translate('reciter'),
                       style: const TextStyle(
-                        fontSize: 9.5,
+                        fontSize: 9,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.textMuted,
                         letterSpacing: 0.6,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       reciterName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -614,56 +666,55 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 enabled: hasTrack && _currentIndex! > 0,
                 onTap: () => _playAt(_currentIndex! - 1),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: _togglePlay,
                 child: Container(
-                  width: 52,
-                  height: 52,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: AppTheme.heroGradient,
                     boxShadow: [
                       BoxShadow(
                         color: AppTheme.primary.withValues(alpha: 0.40),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
                   child: Icon(
                     _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                     color: Colors.white,
-                    size: 30,
+                    size: 26,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               _buildSkipButton(
                 icon: Icons.skip_next_rounded,
                 enabled: hasTrack && _currentIndex! < _ayahs.length - 1,
                 onTap: () => _playAt(_currentIndex! + 1),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               GestureDetector(
                 onTap: () => _showReciterPicker(t),
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     color: AppTheme.surfaceRaised,
                     border:
                         Border.all(color: Colors.white.withValues(alpha: 0.08)),
                   ),
                   child: const Icon(Icons.graphic_eq_rounded,
-                      color: AppTheme.primary, size: 20),
+                      color: AppTheme.primary, size: 18),
                 ),
               ),
             ],
           ),
-            ],
-            ),
+          ],
           ),
         ),
       ),
@@ -679,7 +730,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       onTap: enabled ? onTap : null,
       child: Icon(
         icon,
-        size: 28,
+        size: 24,
         color: enabled
             ? Colors.white.withValues(alpha: 0.85)
             : Colors.white.withValues(alpha: 0.22),
@@ -753,6 +804,207 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       },
     );
   }
+
+  void _showFontPicker(AppLocalizations t) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 8),
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    t.translate('chooseFont'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              ...kQuranFonts.map((f) {
+                final selected = f.id == _fontId;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _changeFont(f.id);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: selected
+                              ? AppTheme.primary.withValues(alpha: 0.10)
+                              : Colors.white.withValues(alpha: 0.04),
+                          border: Border.all(
+                            color: selected
+                                ? AppTheme.primary.withValues(alpha: 0.55)
+                                : Colors.white.withValues(alpha: 0.07),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    f.name,
+                                    style: TextStyle(
+                                      color: selected
+                                          ? AppTheme.primary
+                                          : Colors.white,
+                                      fontWeight: selected
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                if (selected)
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AppTheme.primary,
+                                    size: 20,
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Live preview of the font using the basmala.
+                            SizedBox(
+                              width: double.infinity,
+                              child: Text(
+                                'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+                                textAlign: TextAlign.center,
+                                textDirection: TextDirection.rtl,
+                                style: AppTheme.arabicText(
+                                  fontSize: 22,
+                                  height: 1.7,
+                                  color: Colors.white.withValues(
+                                    alpha: selected ? 0.95 : 0.8,
+                                  ),
+                                  fontFamily: f.family,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// End-of-ayah ornament: an 8-point mushaf rosette with the ayah number
+/// centered. Font-independent so it always renders crisply.
+class _AyahEndMarker extends StatelessWidget {
+  final String label;
+  const _AyahEndMarker({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 30,
+      height: 30,
+      child: CustomPaint(
+        painter: _RosettePainter(),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RosettePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxR = size.width / 2;
+    const beadR = 1.7;
+    final ringR = maxR - beadR; // where the bead centres sit
+    final bodyR = ringR - beadR - 0.5; // the main circle holding the number
+
+    // Main body: subtle fill + crisp outline.
+    canvas.drawCircle(
+      center,
+      bodyR,
+      Paint()
+        ..color = AppTheme.primary.withValues(alpha: 0.10)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      center,
+      bodyR,
+      Paint()
+        ..color = AppTheme.primary.withValues(alpha: 0.65)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1,
+    );
+
+    // Beaded crown around the perimeter.
+    const beadCount = 12;
+    final beadPaint = Paint()
+      ..color = AppTheme.primary.withValues(alpha: 0.75)
+      ..style = PaintingStyle.fill;
+    for (var i = 0; i < beadCount; i++) {
+      final angle = (i * 2 * math.pi / beadCount) - math.pi / 2;
+      canvas.drawCircle(
+        Offset(
+          center.dx + ringR * math.cos(angle),
+          center.dy + ringR * math.sin(angle),
+        ),
+        beadR,
+        beadPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RosettePainter oldDelegate) => false;
 }
 
 class _ReaderProgressBar extends StatelessWidget {

@@ -17,6 +17,7 @@
   "medinan": "Мединская",
   "reciter": "Чтец",
   "chooseReciter": "Выбрать чтеца",
+  "chooseFont": "Шрифт",
   "markSurahRead": "Отметить суру прочитанной",
   "unmarkSurahRead": "Снять отметку",
   "quranLoadError": "Не удалось загрузить Коран. Проверьте соединение.",
