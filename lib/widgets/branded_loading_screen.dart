@@ -47,26 +47,30 @@ class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with Single
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo Section
+              // Logo Section — the app's own ruku' brand mark.
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: Container(
+                    width: 112,
+                    height: 112,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primary.withValues(alpha: 0.2),
-                          blurRadius: 40,
-                          spreadRadius: 10,
+                          color: AppTheme.primary.withValues(alpha: 0.32),
+                          blurRadius: 44,
+                          spreadRadius: 6,
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.auto_awesome_mosaic_rounded, // Premium tech/modern icon
-                      size: 84 * (MediaQuery.of(context).size.width / 400).clamp(0.8, 1.2),
-                      color: AppTheme.primary,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
@@ -97,15 +101,16 @@ class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with Single
                   );
                 },
               ),
-              const SizedBox(height: 120),
-              // Sophisticated Loader
+              const SizedBox(height: 96),
+              // Minimal, calm loader to match the spiritual tone.
               SizedBox(
-                width: 40,
-                height: 40,
+                width: 26,
+                height: 26,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                  strokeWidth: 2.2,
+                  strokeCap: StrokeCap.round,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppTheme.primary.withValues(alpha: 0.8),
+                    AppTheme.primary.withValues(alpha: 0.55),
                   ),
                 ),
               ),
