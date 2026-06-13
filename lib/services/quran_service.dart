@@ -14,6 +14,24 @@ class QuranService {
 
   static const _timeout = Duration(seconds: 20);
 
+  // Audio comes from everyayah.com instead of cdn.islamic.network: the latter
+  // sends no CORS headers, which breaks playback on web (audioplayers sets
+  // crossOrigin=anonymous on its audio element).
+  static const _reciterFolders = {
+    'ar.alafasy': 'Alafasy_128kbps',
+    'ar.abdurrahmaansudais': 'Abdurrahmaan_As-Sudais_192kbps',
+    'ar.husary': 'Husary_128kbps',
+    'ar.mahermuaiqly': 'MaherAlMuaiqly128kbps',
+    'ar.shaatree': 'Abu_Bakr_Ash-Shaatree_128kbps',
+  };
+
+  static String audioUrl(String reciter, int surah, int ayahInSurah) {
+    final folder = _reciterFolders[reciter] ?? _reciterFolders['ar.alafasy']!;
+    final s = surah.toString().padLeft(3, '0');
+    final a = ayahInSurah.toString().padLeft(3, '0');
+    return 'https://everyayah.com/data/$folder/$s$a.mp3';
+  }
+
   /// Maps the app's interface locale to a translation edition. Arabic returns
   /// null (Arabic-only display, no translation block).
   static String? translationEditionForLocale(String locale) {
@@ -83,7 +101,6 @@ class QuranService {
     final editions = [
       _arabicEdition,
       ?translationEdition,
-      reciter,
     ].join(',');
 
     try {
@@ -97,6 +114,7 @@ class QuranService {
             data,
             translationEdition: translationEdition,
             reciter: reciter,
+            surahNumber: number,
           );
           if (ayahs.isNotEmpty) {
             await prefs.setString(
@@ -129,6 +147,7 @@ class QuranService {
     List<dynamic> editionsData, {
     required String? translationEdition,
     required String reciter,
+    required int surahNumber,
   }) {
     Map<String, dynamic>? findEdition(String identifier) {
       for (final e in editionsData) {
@@ -149,21 +168,18 @@ class QuranService {
         : findEdition(translationEdition);
     final translationAyahs = (translation?['ayahs'] as List?) ?? const [];
 
-    final audio = findEdition(reciter);
-    final audioAyahs = (audio?['ayahs'] as List?) ?? const [];
-
     final result = <Ayah>[];
     for (var i = 0; i < arabicAyahs.length; i++) {
       final a = arabicAyahs[i];
       if (a is! Map) continue;
       final tr = i < translationAyahs.length ? translationAyahs[i] : null;
-      final au = i < audioAyahs.length ? audioAyahs[i] : null;
+      final numberInSurah = (a['numberInSurah'] as num?)?.toInt() ?? (i + 1);
       result.add(
         Ayah(
-          numberInSurah: (a['numberInSurah'] as num?)?.toInt() ?? (i + 1),
+          numberInSurah: numberInSurah,
           arabic: a['text'] as String? ?? '',
           translation: tr is Map ? tr['text'] as String? : null,
-          audioUrl: au is Map ? au['audio'] as String? : null,
+          audioUrl: audioUrl(reciter, surahNumber, numberInSurah),
         ),
       );
     }
