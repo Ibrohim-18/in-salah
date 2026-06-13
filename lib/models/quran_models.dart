@@ -73,6 +73,22 @@ class Ayah {
   );
 }
 
+/// A selectable Qur'an script font. [family] is the registered font family in
+/// pubspec.yaml.
+class QuranFont {
+  final String id;
+  final String name;
+  final String family;
+
+  const QuranFont({required this.id, required this.name, required this.family});
+}
+
+/// Fonts offered in the reader. Digital Madina is the default.
+const List<QuranFont> kQuranFonts = [
+  QuranFont(id: 'madina', name: 'Digital Madina', family: 'DigitalMadina'),
+  QuranFont(id: 'khatt', name: 'Digital Khatt (Old Madina)', family: 'DigitalKhatt'),
+];
+
 /// A reciter option for the audio player.
 class Reciter {
   final String id; // AlQuran.cloud audio edition identifier, e.g. 'ar.alafasy'

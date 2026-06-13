@@ -142,13 +142,17 @@ class AppTheme {
     );
   }
 
+  /// Arabic text style. Defaults to the bundled Digital Madina mushaf font;
+  /// pass [fontFamily] to override (e.g. the reader's font picker).
   static TextStyle arabicText({
     double fontSize = 22,
     FontWeight fontWeight = FontWeight.w400,
     Color color = textPrimary,
     double height = 2.0,
+    String fontFamily = 'DigitalMadina',
   }) {
-    return GoogleFonts.amiri(
+    return TextStyle(
+      fontFamily: fontFamily,
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
