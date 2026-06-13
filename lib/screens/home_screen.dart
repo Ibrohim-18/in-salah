@@ -454,61 +454,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTimelineBar(double progress, Color activeColor, AppLocalizations t) {
-    final safeProgress = progress.clamp(0.0, 1.0);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              t.translate('windowProgress'),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.60),
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '${(safeProgress * 100).round()}%',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: activeColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Container(
-          height: 8,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: safeProgress,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  gradient: LinearGradient(
-                    colors: [
-                      activeColor.withValues(alpha: 0.72),
-                      Colors.white.withValues(alpha: 0.88),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildFocusPanel(
     BuildContext context,
     Prayer? nextPrayer,
@@ -576,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
           opacity: 0.10,
           borderHighlight: true,
           borderRadius: 24,
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -586,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     flex: 3,
                     child: Container(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         color: Colors.white.withValues(alpha: 0.04),
@@ -605,28 +550,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.white.withValues(alpha: 0.58),
                             ),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildCompactClockValue(hours),
-                                _buildTimeSeparator(),
-                                _buildCompactClockValue(minutes),
-                                _buildTimeSeparator(),
-                                _buildCompactClockValue(seconds),
+                                _buildClockUnit(hours, t.translate('hrs')),
+                                _buildClockSeparator(),
+                                _buildClockUnit(minutes, t.translate('min')),
+                                _buildClockSeparator(),
+                                _buildClockUnit(seconds, t.translate('sec')),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              _buildUnitPill(t.translate('hrs')),
-                              _buildUnitPill(t.translate('min')),
-                              _buildUnitPill(t.translate('sec')),
-                            ],
                           ),
                         ],
                       ),
@@ -655,8 +592,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              _buildTimelineBar(progress, activeColor, t),
               const SizedBox(height: 12),
               _buildDailyWisdom(now, t),
             ],
@@ -928,51 +863,44 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCompactClockValue(int value) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 42),
-      child: Text(
-        value.toString().padLeft(2, '0'),
-        textAlign: TextAlign.left,
-        style: AppTheme.numericText(
-          size: 30,
-          color: Colors.white,
-          weight: FontWeight.w700,
-          letterSpacing: -1.5,
+  /// One countdown unit: the two-digit value with its short label tucked
+  /// directly beneath, so hrs/min/sec read as a single tidy group.
+  Widget _buildClockUnit(int value, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value.toString().padLeft(2, '0'),
+          style: AppTheme.numericText(
+            size: 30,
+            color: Colors.white,
+            weight: FontWeight.w700,
+            letterSpacing: -1.5,
+          ),
         ),
-      ),
+        const SizedBox(height: 1),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 8.5,
+            fontWeight: FontWeight.w700,
+            color: Colors.white.withValues(alpha: 0.5),
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildTimeSeparator() {
+  Widget _buildClockSeparator() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.only(top: 7, left: 3, right: 3),
       child: Text(
         ':',
         style: TextStyle(
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.w700,
-          color: Colors.white.withValues(alpha: 0.42),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnitPill(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withValues(alpha: 0.04),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 8.5,
-          fontWeight: FontWeight.w700,
-          color: Colors.white.withValues(alpha: 0.56),
-          letterSpacing: 0.8,
+          color: Colors.white.withValues(alpha: 0.32),
         ),
       ),
     );
