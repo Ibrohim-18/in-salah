@@ -93,15 +93,43 @@ const List<QuranFont> kQuranFonts = [
 class Reciter {
   final String id; // AlQuran.cloud audio edition identifier, e.g. 'ar.alafasy'
   final String name;
+  final String arabicName;
 
-  const Reciter({required this.id, required this.name});
+  const Reciter({
+    required this.id,
+    required this.name,
+    this.arabicName = '',
+  });
+
+  /// Two-letter initials for the list avatar, e.g. "Mishary Alafasy" -> "MA".
+  String get initials {
+    final parts =
+        name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) {
+      final p = parts.first;
+      return (p.length >= 2 ? p.substring(0, 2) : p).toUpperCase();
+    }
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
 }
 
 /// Audio editions offered in the reader. Alafasy is the default.
 const List<Reciter> kReciters = [
-  Reciter(id: 'ar.alafasy', name: 'Mishary Alafasy'),
-  Reciter(id: 'ar.abdurrahmaansudais', name: 'Abdurrahman As-Sudais'),
-  Reciter(id: 'ar.husary', name: 'Mahmoud Al-Husary'),
-  Reciter(id: 'ar.mahermuaiqly', name: 'Maher Al-Muaiqly'),
-  Reciter(id: 'ar.shaatree', name: 'Abu Bakr Ash-Shaatree'),
+  Reciter(
+      id: 'ar.alafasy', name: 'Mishary Alafasy', arabicName: 'مشاري العفاسي'),
+  Reciter(
+      id: 'ar.abdurrahmaansudais',
+      name: 'Abdurrahman As-Sudais',
+      arabicName: 'عبدالرحمن السديس'),
+  Reciter(
+      id: 'ar.husary', name: 'Mahmoud Al-Husary', arabicName: 'محمود الحصري'),
+  Reciter(
+      id: 'ar.mahermuaiqly',
+      name: 'Maher Al-Muaiqly',
+      arabicName: 'ماهر المعيقلي'),
+  Reciter(
+      id: 'ar.shaatree',
+      name: 'Abu Bakr Ash-Shaatree',
+      arabicName: 'أبو بكر الشاطري'),
 ];

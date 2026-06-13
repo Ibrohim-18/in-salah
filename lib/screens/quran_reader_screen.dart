@@ -528,6 +528,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
         children: [
+          // Grip handle — hints the bar expands into the full player.
+          GestureDetector(
+            onTap: () => _openFullPlayer(t),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                color: Colors.white.withValues(alpha: 0.18),
+              ),
+            ),
+          ),
           // Seek bar with timing.
           Row(
             children: [
@@ -633,32 +647,36 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      playingAyah != null
-                          ? '${t.translate('reciter')} · ${widget.surah.number}:$playingAyah'
-                          : t.translate('reciter'),
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textMuted,
-                        letterSpacing: 0.6,
+                child: GestureDetector(
+                  onTap: () => _openFullPlayer(t),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        playingAyah != null
+                            ? '${t.translate('reciter')} · ${widget.surah.number}:$playingAyah'
+                            : t.translate('reciter'),
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textMuted,
+                          letterSpacing: 0.6,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      reciterName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                      const SizedBox(height: 1),
+                      Text(
+                        reciterName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               _buildSkipButton(
@@ -734,6 +752,38 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         color: enabled
             ? Colors.white.withValues(alpha: 0.85)
             : Colors.white.withValues(alpha: 0.22),
+      ),
+    );
+  }
+
+  void _openFullPlayer(AppLocalizations t) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black.withValues(alpha: 0.45),
+        transitionDuration: const Duration(milliseconds: 340),
+        reverseTransitionDuration: const Duration(milliseconds: 280),
+        pageBuilder: (_, __, ___) => _FullPlayer(
+          player: _player,
+          surah: widget.surah,
+          ayahs: _ayahs,
+          initialIndex: _currentIndex,
+          reciterId: _reciter,
+          onTogglePlay: _togglePlay,
+          onPlayAt: _playAt,
+          onChangeReciter: _changeReciter,
+        ),
+        transitionsBuilder: (_, anim, __, child) {
+          final curved =
+              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -1005,6 +1055,513 @@ class _RosettePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RosettePainter oldDelegate) => false;
+}
+
+/// Full-screen "now playing" sheet opened by tapping the mini player bar.
+class _FullPlayer extends StatefulWidget {
+  final AudioPlayer player;
+  final Surah surah;
+  final List<Ayah> ayahs;
+  final int? initialIndex;
+  final String reciterId;
+  final VoidCallback onTogglePlay;
+  final Future<void> Function(int index) onPlayAt;
+  final Future<void> Function(String reciterId) onChangeReciter;
+
+  const _FullPlayer({
+    required this.player,
+    required this.surah,
+    required this.ayahs,
+    required this.initialIndex,
+    required this.reciterId,
+    required this.onTogglePlay,
+    required this.onPlayAt,
+    required this.onChangeReciter,
+  });
+
+  @override
+  State<_FullPlayer> createState() => _FullPlayerState();
+}
+
+class _FullPlayerState extends State<_FullPlayer> {
+  late int? _index = widget.initialIndex;
+  late String _reciterId = widget.reciterId;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  bool _isPlaying = false;
+
+  StreamSubscription? _posSub;
+  StreamSubscription? _durSub;
+  StreamSubscription? _stateSub;
+  StreamSubscription? _completeSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _isPlaying = widget.player.state == PlayerState.playing;
+    _posSub = widget.player.onPositionChanged.listen((p) {
+      if (mounted) setState(() => _position = p);
+    });
+    _durSub = widget.player.onDurationChanged.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+    _stateSub = widget.player.onPlayerStateChanged.listen((s) {
+      if (mounted) setState(() => _isPlaying = s == PlayerState.playing);
+    });
+    _completeSub = widget.player.onPlayerComplete.listen((_) {
+      if (!mounted) return;
+      final next = (_index ?? -1) + 1;
+      setState(() => _index = next < widget.ayahs.length ? next : null);
+    });
+    _syncOnce();
+  }
+
+  Future<void> _syncOnce() async {
+    final pos = await widget.player.getCurrentPosition();
+    final dur = await widget.player.getDuration();
+    if (!mounted) return;
+    setState(() {
+      if (pos != null) _position = pos;
+      if (dur != null) _duration = dur;
+    });
+  }
+
+  @override
+  void dispose() {
+    _posSub?.cancel();
+    _durSub?.cancel();
+    _stateSub?.cancel();
+    _completeSub?.cancel();
+    super.dispose();
+  }
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  void _toggle() {
+    final wasStopped = _index == null;
+    widget.onTogglePlay();
+    if (wasStopped) setState(() => _index = 0);
+  }
+
+  void _skip(int delta) {
+    final target = (_index ?? 0) + delta;
+    if (target < 0 || target >= widget.ayahs.length) return;
+    setState(() => _index = target);
+    widget.onPlayAt(target);
+  }
+
+  Future<void> _seekFraction(double fraction) async {
+    if (_index == null || _duration == Duration.zero) return;
+    await widget.player.seek(
+      Duration(milliseconds: (_duration.inMilliseconds * fraction).round()),
+    );
+  }
+
+  void _pickReciter(String id) {
+    if (id != _reciterId) {
+      widget.onChangeReciter(id);
+      setState(() {
+        _reciterId = id;
+        _index = null;
+        _position = Duration.zero;
+        _duration = Duration.zero;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final hasTrack = _index != null && _index! < widget.ayahs.length;
+    final playingAyah = hasTrack ? widget.ayahs[_index!].numberInSurah : null;
+    final fraction = _duration == Duration.zero
+        ? 0.0
+        : (_position.inMilliseconds / _duration.inMilliseconds)
+            .clamp(0.0, 1.0);
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: LiquidBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: Column(
+              children: [
+                // Drag handle + collapse button.
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                          color: Colors.white, size: 28),
+                    ),
+                    Expanded(
+                      child: Text(
+                        t.translate('reciter').toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Now-playing artwork.
+                Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppTheme.heroGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withValues(alpha: 0.35),
+                        blurRadius: 40,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.menu_book_rounded,
+                      color: Colors.white, size: 64),
+                ),
+                const SizedBox(height: 22),
+                Text(
+                  widget.surah.englishName,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  playingAyah != null
+                      ? '${widget.surah.englishTranslation} · ${widget.surah.number}:$playingAyah'
+                      : widget.surah.englishTranslation,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Seek bar.
+                LayoutBuilder(
+                  builder: (context, c) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (d) => _seekFraction(
+                        (d.localPosition.dx / c.maxWidth).clamp(0.0, 1.0)),
+                    onHorizontalDragUpdate: (d) => _seekFraction(
+                        (d.localPosition.dx / c.maxWidth).clamp(0.0, 1.0)),
+                    child: SizedBox(
+                      height: 20,
+                      child: Center(
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            Container(
+                              height: 5,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                color: Colors.white.withValues(alpha: 0.08),
+                              ),
+                            ),
+                            FractionallySizedBox(
+                              widthFactor: fraction,
+                              child: Container(
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppTheme.primaryDeep,
+                                      AppTheme.primary,
+                                      Colors.white.withValues(alpha: 0.9),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (hasTrack)
+                              Align(
+                                alignment: Alignment((fraction * 2) - 1, 0),
+                                child: Container(
+                                  width: 13,
+                                  height: 13,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.primary
+                                            .withValues(alpha: 0.6),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_fmt(_position),
+                        style: AppTheme.numericText(
+                            size: 11,
+                            color: Colors.white,
+                            weight: FontWeight.w600,
+                            letterSpacing: 0)),
+                    Text(_fmt(_duration),
+                        style: AppTheme.numericText(
+                            size: 11,
+                            color: AppTheme.textMuted,
+                            weight: FontWeight.w600,
+                            letterSpacing: 0)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Transport controls.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _ctrl(
+                      icon: Icons.skip_previous_rounded,
+                      size: 36,
+                      enabled: hasTrack && _index! > 0,
+                      onTap: () => _skip(-1),
+                    ),
+                    const SizedBox(width: 28),
+                    GestureDetector(
+                      onTap: _toggle,
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppTheme.heroGradient,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primary.withValues(alpha: 0.45),
+                              blurRadius: 18,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 28),
+                    _ctrl(
+                      icon: Icons.skip_next_rounded,
+                      size: 36,
+                      enabled:
+                          hasTrack && _index! < widget.ayahs.length - 1,
+                      onTap: () => _skip(1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    t.translate('chooseReciter'),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: kReciters.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, i) {
+                      final r = kReciters[i];
+                      final selected = r.id == _reciterId;
+                      return _ReciterTile(
+                        reciter: r,
+                        selected: selected,
+                        playing: selected && _isPlaying,
+                        onTap: () => _pickReciter(r.id),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _ctrl({
+    required IconData icon,
+    required double size,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Icon(
+        icon,
+        size: size,
+        color: enabled
+            ? Colors.white.withValues(alpha: 0.9)
+            : Colors.white.withValues(alpha: 0.22),
+      ),
+    );
+  }
+}
+
+/// A single reciter row in the full player's list.
+class _ReciterTile extends StatelessWidget {
+  final Reciter reciter;
+  final bool selected;
+  final bool playing;
+  final VoidCallback onTap;
+
+  const _ReciterTile({
+    required this.reciter,
+    required this.selected,
+    required this.playing,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: selected
+              ? LinearGradient(
+                  colors: [
+                    AppTheme.primary.withValues(alpha: 0.22),
+                    AppTheme.primary.withValues(alpha: 0.06),
+                  ],
+                )
+              : null,
+          color: selected ? null : AppTheme.surfaceRaised,
+          border: Border.all(
+            color: selected
+                ? AppTheme.primary.withValues(alpha: 0.55)
+                : Colors.white.withValues(alpha: 0.06),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: selected
+                    ? AppTheme.heroGradient
+                    : LinearGradient(
+                        colors: [
+                          AppTheme.surfaceAlt,
+                          AppTheme.surfaceAlt.withValues(alpha: 0.6),
+                        ],
+                      ),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+              child: Text(
+                reciter.initials,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? Colors.white : AppTheme.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reciter.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? Colors.white : Colors.white,
+                    ),
+                  ),
+                  if (reciter.arabicName.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      reciter.arabicName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: selected
+                            ? AppTheme.primary
+                            : AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (playing)
+              const Icon(Icons.graphic_eq_rounded,
+                  color: AppTheme.primary, size: 22)
+            else if (selected)
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppTheme.heroGradient,
+                ),
+                child: const Icon(Icons.check_rounded,
+                    color: Colors.white, size: 16),
+              )
+            else
+              Icon(Icons.play_circle_outline_rounded,
+                  color: Colors.white.withValues(alpha: 0.3), size: 24),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ReaderProgressBar extends StatelessWidget {
