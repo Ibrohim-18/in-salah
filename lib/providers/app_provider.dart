@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart' show HapticFeedback, rootBundle;
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/user_settings.dart';
 import '../models/prayer.dart';
@@ -23,7 +22,7 @@ typedef FetchUserProfileSettingsCallback =
 typedef FetchMissedPrayersCallback =
     Future<List<Map<String, dynamic>>> Function(String userId);
 
-class AppProvider extends ChangeNotifier {
+class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   AppProvider({
     SettingsService? settingsService,
     PrayerTimeService? prayerTimeService,
@@ -73,9 +72,40 @@ class AppProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounceTimer?.cancel();
     _authSubscription?.cancel();
     super.dispose();
+  }
+
+  DateTime? _lastNotificationSync;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (_isLoading || !_settings.isSetupComplete) return;
+
+    // Throttle: re-syncing on every brief foreground toggle is wasteful, but
+    // we want to refresh prayer times and re-extend the 30-day notification
+    // window whenever the app comes back after being idle for a while.
+    final now = DateTime.now();
+    if (_lastNotificationSync != null &&
+        now.difference(_lastNotificationSync!) < const Duration(minutes: 30)) {
+      return;
+    }
+    _lastNotificationSync = now;
+
+    unawaited(_refreshOnResume());
+  }
+
+  Future<void> _refreshOnResume() async {
+    try {
+      await _loadPrayersAndCount(userId: _currentUser?.id);
+      await _scheduleNotifications();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error refreshing on resume: $e');
+    }
   }
 
   UserSettings _settings = UserSettings();
@@ -257,6 +287,7 @@ class AppProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      WidgetsBinding.instance.addObserver(this);
       await _notificationInit();
 
       // Setup Auth Listener
@@ -430,10 +461,20 @@ class AppProvider extends ChangeNotifier {
     }
 
     await _schedulePrayerReminders(requests);
+    _lastNotificationSync = DateTime.now();
   }
 
   Future<bool> ensureNotificationPermission() async {
     final granted = await _notificationRequestPermission();
+    if (granted && _settings.isSetupComplete) {
+      try {
+        await _loadPrayersAndCount(userId: _currentUser?.id);
+        await _scheduleNotifications();
+      } catch (e) {
+        _error = e.toString();
+        debugPrint('Error scheduling notifications after permission: $e');
+      }
+    }
     notifyListeners();
     return granted;
   }
@@ -446,10 +487,7 @@ class AppProvider extends ChangeNotifier {
     required String title,
     required String body,
   }) {
-    return NotificationService().sendTestNotification(
-      title: title,
-      body: body,
-    );
+    return NotificationService().sendTestNotification(title: title, body: body);
   }
 
   Timer? _debounceTimer;
@@ -527,7 +565,8 @@ class AppProvider extends ChangeNotifier {
     final isToday = _isSameDay(date, DateTime.now());
     int todayPrayerIndex = -1;
     final wasAllDone =
-        isToday && _todayPrayers.isNotEmpty &&
+        isToday &&
+        _todayPrayers.isNotEmpty &&
         _todayPrayers.every((p) => p.isCompleted);
 
     if (isToday) {
@@ -582,7 +621,8 @@ class AppProvider extends ChangeNotifier {
       _currentStreak = await _calculateStreak(userId: userId);
       notifyListeners();
 
-      final allDoneNow = isToday &&
+      final allDoneNow =
+          isToday &&
           _todayPrayers.isNotEmpty &&
           _todayPrayers.every((p) => p.isCompleted);
       return allDoneNow && !wasAllDone;
