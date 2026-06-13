@@ -227,6 +227,11 @@
   "selected": "Интихобшуда",
   "markAllDone": "Ҳамаро қайд кунед",
   "allMarked": "Ҳама қайд шуданд",
+  "markWholeMonth": "Тамоми моҳро қайд кунед",
+  "resetWholeMonth": "Моҳро бознишонед",
+  "markMonthConfirm": "Ҳамаи намозҳои {month}-ро ҳамчун адошуда қайд кунед?",
+  "resetMonthConfirm": "Қайди ҳамаи намозҳои {month}-ро бардоред?",
+  "confirm": "Тасдиқ",
   "reset": "Бозгардонидан",
 
   "tasbeehSubhanallahMeaning": "Пок аст Аллоҳ",

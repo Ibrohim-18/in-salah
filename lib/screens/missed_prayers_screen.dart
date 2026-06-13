@@ -1014,10 +1014,135 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
             ],
           ),
           const SizedBox(height: 14),
+          _buildMonthBulkActions(t),
+          const SizedBox(height: 14),
           _buildLegend(t),
         ],
       ),
     );
+  }
+
+  // Bulk "mark / reset the whole month" — lets users log a fully-prayed month
+  // without ticking each day by hand.
+  Widget _buildMonthBulkActions(AppLocalizations t) {
+    final now = DateTime.now();
+    final isFutureMonth =
+        _viewMonth.isAfter(DateTime(now.year, now.month, 1));
+    if (isFutureMonth) return const SizedBox.shrink();
+
+    final completed = _monthStats['completed'] ?? 0;
+    final total = _monthStats['total'] ?? 0;
+    final allDone = total > 0 && completed >= total;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _bulkButton(
+            label: allDone
+                ? t.translate('allMarked')
+                : t.translate('markWholeMonth'),
+            icon: Icons.done_all_rounded,
+            accent: AppTheme.success,
+            enabled: !allDone && total > 0,
+            onTap: () => _confirmMonthAction(t, markDone: true),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _bulkButton(
+            label: t.translate('resetWholeMonth'),
+            icon: Icons.restart_alt_rounded,
+            accent: AppTheme.textSecondary,
+            enabled: completed > 0,
+            onTap: () => _confirmMonthAction(t, markDone: false),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmMonthAction(
+    AppLocalizations t, {
+    required bool markDone,
+  }) async {
+    final monthLabel =
+        Localizations.localeOf(context).languageCode == 'tg'
+            ? '${AppUtils.tgMonthLong(_viewMonth.month)} ${_viewMonth.year}'
+            : DateFormat(
+                'MMMM yyyy',
+                AppUtils.intlLocale(Localizations.localeOf(context).languageCode),
+              ).format(_viewMonth);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogTheme: DialogThemeData(backgroundColor: AppTheme.surface),
+          ),
+          child: AlertDialog(
+            backgroundColor: AppTheme.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              markDone
+                  ? t.translate('markWholeMonth')
+                  : t.translate('resetWholeMonth'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            content: Text(
+              (markDone
+                      ? t.translate('markMonthConfirm')
+                      : t.translate('resetMonthConfirm'))
+                  .replaceFirst('{month}', monthLabel),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 13.5,
+                height: 1.4,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  t.translate('cancel'),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  t.translate('confirm'),
+                  style: TextStyle(
+                    color: markDone ? AppTheme.success : AppTheme.danger,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<AppProvider>();
+    await provider.setAllPrayersForMonth(
+      _viewMonth.year,
+      _viewMonth.month,
+      markDone,
+    );
+    await _loadMonthStats();
+    await _loadDayStatuses(showSpinner: false);
   }
 
   Widget _calendarIconBtn({

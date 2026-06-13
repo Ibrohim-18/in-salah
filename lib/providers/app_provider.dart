@@ -603,6 +603,41 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Marks (or clears) every non-future prayer across the whole [year]/[month]
+  /// in one pass, then refreshes lifetime totals, today's checkboxes and the
+  /// streak. Lets users log a fully-prayed month without ticking each day.
+  Future<void> setAllPrayersForMonth(
+    int year,
+    int month,
+    bool completed,
+  ) async {
+    final userId = _currentUser?.id;
+    await _missedPrayerService.setAllPrayersForMonth(
+      year,
+      month,
+      completed: completed,
+      pastPrayersToday: getPastPrayersToday(),
+      userId: userId,
+    );
+
+    final stats = await _missedPrayerService.getLifetimeStats(
+      _settings,
+      getPastPrayersToday(),
+      userId: userId,
+    );
+    _missedCount = stats['missed'] ?? 0;
+    _totalObligatory = stats['total'] ?? 0;
+    _lifetimeCompleted = stats['completed'] ?? 0;
+
+    final now = DateTime.now();
+    if (year == now.year && month == now.month && _todayPrayers.isNotEmpty) {
+      _todayPrayers =
+          await _withTodayCompletionStatuses(_todayPrayers, userId: userId);
+    }
+    _currentStreak = await _calculateStreak(userId: userId);
+    notifyListeners();
+  }
+
   String getNextPrayerName() {
     if (_todayPrayers.isEmpty) return '';
     return _prayerTimeService.getNextPrayerName(_todayPrayers);

@@ -227,6 +227,11 @@
   "selected": "Selected",
   "markAllDone": "Mark all done",
   "allMarked": "All marked",
+  "markWholeMonth": "Mark whole month",
+  "resetWholeMonth": "Reset month",
+  "markMonthConfirm": "Mark every prayer in {month} as completed?",
+  "resetMonthConfirm": "Clear all prayer marks for {month}?",
+  "confirm": "Confirm",
   "reset": "Reset",
 
   "tasbeehSubhanallahMeaning": "Glory be to Allah",

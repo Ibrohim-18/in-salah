@@ -91,6 +91,69 @@ class MissedPrayerService {
     }
   }
 
+  /// Marks every prayer of every non-future day in [year]/[month] as
+  /// [completed] in one pass. For the current month, today only marks prayers
+  /// whose time has already passed ([pastPrayersToday]); future days are
+  /// skipped entirely. Invalidates the lifetime cache so totals recompute.
+  Future<void> setAllPrayersForMonth(
+    int year,
+    int month, {
+    required bool completed,
+    required int pastPrayersToday,
+    String? userId,
+  }) async {
+    final now = DateTime.now();
+    // Nothing to do for months that lie entirely in the future.
+    if (DateTime(year, month, 1).isAfter(DateTime(now.year, now.month, 1))) {
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final prayerNames = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    final currentUser = InsforgeService.instance.currentUser;
+    bool changedAny = false;
+
+    for (int day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(year, month, day);
+      // Stop once we reach days that haven't happened yet.
+      if (date.isAfter(DateTime(now.year, now.month, now.day))) break;
+
+      final isToday = year == now.year && month == now.month && day == now.day;
+      final allowedCount = isToday ? pastPrayersToday : prayerNames.length;
+
+      for (int i = 0; i < prayerNames.length; i++) {
+        // When marking done, never tick a prayer whose time hasn't come.
+        final target = completed && i < allowedCount;
+        final key = _getKey(prayerNames[i], date, userId: userId);
+        final previous = prefs.getBool(key) ?? false;
+        if (previous == target) continue;
+
+        await prefs.setBool(key, target);
+        changedAny = true;
+
+        if (currentUser != null && currentUser.id.isNotEmpty) {
+          final dateStr =
+              "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+          unawaited(
+            InsforgeService.instance.upsertRecord('missed_prayers_log', {
+              'user_id': currentUser.id,
+              'prayer_name': prayerNames[i],
+              'prayer_date': dateStr,
+              'is_completed': target,
+              'updated_at': DateTime.now().toIso8601String(),
+            }),
+          );
+        }
+      }
+    }
+
+    if (changedAny) {
+      // Force a fresh recount on the next lifetime-stats read.
+      await prefs.remove(_getLifetimeKey(userId: userId));
+    }
+  }
+
   Future<int> restoreFromCloud(
     String userId,
     List<Map<String, dynamic>> records,

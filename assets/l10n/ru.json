@@ -227,6 +227,11 @@
   "selected": "Выбрано",
   "markAllDone": "Отметить все",
   "allMarked": "Все отмечены",
+  "markWholeMonth": "Отметить весь месяц",
+  "resetWholeMonth": "Сбросить месяц",
+  "markMonthConfirm": "Отметить все намазы за {month} как выполненные?",
+  "resetMonthConfirm": "Снять отметки со всех намазов за {month}?",
+  "confirm": "Подтвердить",
   "reset": "Сбросить",
 
   "tasbeehSubhanallahMeaning": "Слава Аллаху",

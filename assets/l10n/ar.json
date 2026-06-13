@@ -227,6 +227,11 @@
   "selected": "محدد",
   "markAllDone": "تحديد الكل",
   "allMarked": "تم تحديد الكل",
+  "markWholeMonth": "تحديد الشهر كاملاً",
+  "resetWholeMonth": "إعادة تعيين الشهر",
+  "markMonthConfirm": "تحديد كل صلوات {month} كمؤداة؟",
+  "resetMonthConfirm": "إزالة كل علامات الصلاة لشهر {month}؟",
+  "confirm": "تأكيد",
   "reset": "إعادة تعيين",
 
   "tasbeehSubhanallahMeaning": "سبحان الله",
