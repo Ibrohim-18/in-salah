@@ -95,48 +95,58 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final avatarPath = provider.settings.avatarPath;
     final avatarImage = provider.avatarImage;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppTheme.surface.withValues(alpha: 0.70),
-                AppTheme.surface.withValues(alpha: 0.92),
-              ],
-            ),
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.06),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppTheme.surface.withValues(alpha: 0.70),
+                    AppTheme.surface.withValues(alpha: 0.92),
+                  ],
+                ),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 2),
-              child: Row(
-                children: List.generate(_destinations.length, (index) {
-                  final destination = _destinations[index];
-                  final isSelected = _currentIndex == index;
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: List.generate(_destinations.length, (index) {
+                    final destination = _destinations[index];
+                    final isSelected = _currentIndex == index;
 
-                  return _buildNavItem(
-                    index: index,
-                    destination: destination,
-                    isSelected: isSelected,
-                    customIcon: index == 4
-                        ? _buildProfileIcon(
-                            destination: destination,
-                            isSelected: isSelected,
-                            avatarPath: avatarPath,
-                            avatarImage: avatarImage,
-                          )
-                        : null,
-                  );
-                }),
+                    return _buildNavItem(
+                      index: index,
+                      destination: destination,
+                      isSelected: isSelected,
+                      customIcon: index == 4
+                          ? _buildProfileIcon(
+                              destination: destination,
+                              isSelected: isSelected,
+                              avatarPath: avatarPath,
+                              avatarImage: avatarImage,
+                            )
+                          : null,
+                    );
+                  }),
+                ),
               ),
             ),
           ),
@@ -242,7 +252,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: Image(
           image: imageProvider,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => fallback,
+          errorBuilder: (_, _, _) => fallback,
         ),
       ),
     );

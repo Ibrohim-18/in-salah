@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -445,23 +446,35 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     final playingAyah =
         hasTrack ? _ayahs[_currentIndex!].numberInSurah : null;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      decoration: BoxDecoration(
-        color: AppTheme.surface.withValues(alpha: 0.94),
-        border: Border(
-          top: BorderSide(color: AppTheme.primary.withValues(alpha: 0.18)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, -6),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              color: AppTheme.surface.withValues(alpha: 0.88),
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.18),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
         children: [
           // Seek bar with timing.
           Row(
@@ -649,7 +662,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ),
             ],
           ),
-        ],
+            ],
+            ),
+          ),
+        ),
       ),
     );
   }
