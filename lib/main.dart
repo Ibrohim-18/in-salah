@@ -12,6 +12,7 @@ import 'providers/app_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/background_tasks.dart';
 import 'services/insforge_service.dart';
 import 'services/settings_service.dart';
 import 'utils/theme.dart';
@@ -38,6 +39,7 @@ Future<void> main() async {
 
   await InsforgeService.instance.init();
   await initializeDateFormatting();
+  await initializeBackgroundReschedule();
 
   final prefs = await SharedPreferences.getInstance();
   final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;

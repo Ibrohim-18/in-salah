@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/services.dart' show HapticFeedback, rootBundle;
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
-import 'package:geolocator/geolocator.dart';
 import '../models/user_settings.dart';
 import '../models/prayer.dart';
+import '../services/background_tasks.dart';
 import '../services/insforge_service.dart';
 import '../services/settings_service.dart';
 import '../services/prayer_time_service.dart';
+import '../services/prayer_reminder_planner.dart';
 import '../services/missed_prayer_service.dart';
 import '../services/notification_service.dart';
 
@@ -59,6 +60,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   final SettingsService _settingsService;
   final PrayerTimeService _prayerTimeService;
+  late final PrayerReminderPlanner _reminderPlanner = PrayerReminderPlanner(
+    prayerTimeService: _prayerTimeService,
+  );
   final MissedPrayerService _missedPrayerService;
   final NotificationInitCallback _notificationInit;
   final NotificationInitCallback _notificationCancelAll;
@@ -222,6 +226,10 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     _totalObligatory = 0;
     _lifetimeCompleted = 0;
 
+    // Tell the background reschedule task which settings scope to rebuild
+    // reminders from, since the isolate has no access to the auth session.
+    await persistActiveNotificationScope(_currentUser?.id ?? 'guest');
+
     if (_currentUser == null) {
       _settings = UserSettings();
       _cacheAvatar();
@@ -379,87 +387,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     return streak;
   }
 
-  /// Loads the active locale's translation map for use outside of widget tree
-  /// (e.g. when scheduling notifications).
-  Future<Map<String, String>> _loadActiveTranslations() async {
-    final code = _settings.locale == 'system' ? 'en' : _settings.locale;
-    final supported = const {'en', 'ru', 'ar', 'tg'};
-    final effective = supported.contains(code) ? code : 'en';
-    try {
-      final raw = await rootBundle.loadString('assets/l10n/$effective.json');
-      final map = json.decode(raw) as Map<String, dynamic>;
-      return map.map((k, v) => MapEntry(k, v.toString()));
-    } catch (_) {
-      return const {};
-    }
-  }
-
-  String _localizedPrayerName(String name, Map<String, String> tr) {
-    return switch (name) {
-      'Fajr' => tr['fajr'] ?? name,
-      'Dhuhr' => tr['dhuhr'] ?? name,
-      'Asr' => tr['asr'] ?? name,
-      'Maghrib' => tr['maghrib'] ?? name,
-      'Isha' => tr['isha'] ?? name,
-      _ => name,
-    };
-  }
-
   Future<void> _scheduleNotifications() async {
-    final now = DateTime.now();
-    final requests = <PrayerNotificationRequest>[];
-    final prayerOrder = const {
-      'Fajr': 1,
-      'Dhuhr': 2,
-      'Asr': 3,
-      'Maghrib': 4,
-      'Isha': 5,
-    };
-
-    final tr = await _loadActiveTranslations();
-    final titleTpl = tr['notificationPrayerTitle'] ?? '{prayer} Prayer';
-    final bodyTpl =
-        tr['notificationPrayerBody'] ?? 'It is time for {prayer} prayer.';
-
-    Position? sharedPosition;
-    try {
-      sharedPosition = await _prayerTimeService.getCurrentPosition();
-    } catch (_) {
-      sharedPosition = null;
-    }
-
-    for (var dayOffset = 0; dayOffset < 30; dayOffset++) {
-      final targetDate = DateTime(now.year, now.month, now.day + dayOffset);
-      final prayers = await _prayerTimeService.getPrayersForDate(
-        targetDate,
-        settings: _settings,
-        position: sharedPosition,
-      );
-
-      for (final prayer in prayers) {
-        final prayerSettings = _settings.prayerSettings[prayer.name];
-        if (!(prayerSettings?.isEnabled ?? true) || !prayer.time.isAfter(now)) {
-          continue;
-        }
-
-        final dateKey =
-            (targetDate.year * 10000) +
-            (targetDate.month * 100) +
-            targetDate.day;
-        final localizedName = _localizedPrayerName(prayer.name, tr);
-        requests.add(
-          PrayerNotificationRequest(
-            id: (dateKey * 10) + (prayerOrder[prayer.name] ?? 0),
-            prayerName: prayer.name,
-            title: titleTpl.replaceAll('{prayer}', localizedName),
-            body: bodyTpl.replaceAll('{prayer}', localizedName),
-            dateTime: prayer.time,
-            sound: prayerSettings?.sound ?? 'default',
-          ),
-        );
-      }
-    }
-
+    final requests = await _reminderPlanner.buildRequests(_settings);
     await _schedulePrayerReminders(requests);
     _lastNotificationSync = DateTime.now();
   }
