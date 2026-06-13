@@ -49,10 +49,10 @@ export default async function(request) {
     }),
   ]);
 
-  // Delete the auth user via the admin endpoint. The admin key is read from a
-  // server-side secret — never from the request — so it is never shipped in the
-  // mobile app bundle. Set ADMIN_API_KEY in the InsForge function secrets.
-  const adminKey = Deno.env.get('ADMIN_API_KEY');
+  // Delete the auth user via the admin endpoint. The admin key is read from the
+  // project's reserved API_KEY env secret — never from the request — so it is
+  // never shipped in the mobile app bundle.
+  const adminKey = Deno.env.get('API_KEY');
   let authDeleted = false;
   if (adminKey) {
     const delResp = await fetch(`${baseUrl}/api/auth/users`, {
@@ -72,7 +72,7 @@ export default async function(request) {
       authDeleted,
       message: authDeleted
         ? 'Account deleted'
-        : 'Account data deleted; auth user not removed (ADMIN_API_KEY not configured)',
+        : 'Account data deleted; auth user not removed (API_KEY unavailable)',
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   );
