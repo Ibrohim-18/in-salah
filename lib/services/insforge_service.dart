@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -171,6 +172,10 @@ class InsforgeService {
   static final instance = InsforgeService._();
   InsforgeService._();
 
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+
   InsforgeUser? _user;
   String? _accessToken;
   String? _refreshToken;
@@ -191,10 +196,12 @@ class InsforgeService {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _pkceVerifier = prefs.getString(_pkceVerifierStorageKey);
+    await _migrateLegacyTokens(prefs);
 
-    final token = prefs.getString(_accessTokenStorageKey);
-    final refresh = prefs.getString(_refreshTokenStorageKey);
+    _pkceVerifier = await _secureStorage.read(key: _pkceVerifierStorageKey);
+
+    final token = await _secureStorage.read(key: _accessTokenStorageKey);
+    final refresh = await _secureStorage.read(key: _refreshTokenStorageKey);
     if (token == null) return;
 
     // Try to validate the current token
@@ -244,6 +251,22 @@ class InsforgeService {
     _authController.add(_user);
   }
 
+  /// Moves tokens persisted by older builds out of plaintext
+  /// SharedPreferences and into encrypted secure storage, once.
+  Future<void> _migrateLegacyTokens(SharedPreferences prefs) async {
+    for (final key in [
+      _accessTokenStorageKey,
+      _refreshTokenStorageKey,
+      _pkceVerifierStorageKey,
+    ]) {
+      final legacy = prefs.getString(key);
+      if (legacy != null) {
+        await _secureStorage.write(key: key, value: legacy);
+        await prefs.remove(key);
+      }
+    }
+  }
+
   Future<void> _doRefresh(String refreshToken) async {
     try {
       final resp = await http
@@ -284,10 +307,13 @@ class InsforgeService {
     _refreshToken = data['refreshToken'] as String?;
     _authController.add(_user);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_accessTokenStorageKey, _accessToken!);
+    await _secureStorage.write(key: _accessTokenStorageKey, value: _accessToken!);
     await prefs.setString(_userStorageKey, jsonEncode(_user!.toJson()));
     if (_refreshToken != null) {
-      await prefs.setString(_refreshTokenStorageKey, _refreshToken!);
+      await _secureStorage.write(
+        key: _refreshTokenStorageKey,
+        value: _refreshToken!,
+      );
     }
   }
 
@@ -297,19 +323,18 @@ class InsforgeService {
     _refreshToken = null;
     _authController.add(null);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_accessTokenStorageKey);
-    await prefs.remove(_refreshTokenStorageKey);
+    await _secureStorage.delete(key: _accessTokenStorageKey);
+    await _secureStorage.delete(key: _refreshTokenStorageKey);
     await prefs.remove(_userStorageKey);
   }
 
   Future<void> _persistPkceVerifier(String? verifier) async {
     _pkceVerifier = verifier;
-    final prefs = await SharedPreferences.getInstance();
     if (verifier == null) {
-      await prefs.remove(_pkceVerifierStorageKey);
+      await _secureStorage.delete(key: _pkceVerifierStorageKey);
       return;
     }
-    await prefs.setString(_pkceVerifierStorageKey, verifier);
+    await _secureStorage.write(key: _pkceVerifierStorageKey, value: verifier);
   }
 
   /// Returns true if email verification is required.
