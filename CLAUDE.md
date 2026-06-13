@@ -52,9 +52,6 @@ lib/
 - Notifications: scheduled 30 days ahead on settings change
 - OAuth: PKCE flow with deep links (app.insalah.prayer://auth-callback)
 
-## Known Issues
-- `main.dart:38`: `prefs.remove('hasSeenOnboarding')` resets onboarding every launch (TODO comment says to remove after testing)
-
 ## Build & Run
 ```bash
 flutter pub get
