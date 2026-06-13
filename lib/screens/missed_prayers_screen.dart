@@ -121,13 +121,69 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
         final diffDays = today.difference(selected).inDays;
         final targetIndex = diffDays > 0 ? diffDays : 0;
 
+        // Each chip is 52px wide + 6px left margin = 58px. Nudge so the
+        // selected day lands comfortably inside the viewport, not at the edge.
+        const itemExtent = 58.0;
+        final viewport = _dayScrollController.position.viewportDimension;
+        final maxScroll = _dayScrollController.position.maxScrollExtent;
+        final target =
+            (targetIndex * itemExtent - viewport / 2 + itemExtent / 2)
+                .clamp(0.0, maxScroll);
+
         _dayScrollController.animateTo(
-          targetIndex * 63.0,
+          target,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
     });
+  }
+
+  /// Oldest day prayers can be logged for: the start of the year the user
+  /// became obligated (birth year + obligation age). Falls back to one year
+  /// of history when the date of birth hasn't been set up yet.
+  DateTime get _earliestDate {
+    final dob = _provider?.settings.dateOfBirth;
+    if (dob == null) {
+      final now = DateTime.now();
+      return DateTime(now.year - 1, now.month, now.day);
+    }
+    return DateTime(dob.year + _provider!.settings.obligationStartAge, 1, 1);
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final first = _earliestDate;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate.isAfter(now) ? now : _selectedDate,
+      firstDate: first,
+      lastDate: now,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: AppTheme.primary,
+              onPrimary: const Color(0xFF0B0D0F),
+              surface: AppTheme.surfaceRaised,
+              onSurface: Colors.white,
+            ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: AppTheme.surface,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _selectedDate = picked;
+      _viewMonth = DateTime(picked.year, picked.month, 1);
+    });
+    _loadDayStatuses(showSpinner: false);
+    _loadMonthStats();
+    _scrollToSelected();
   }
 
   @override
@@ -575,45 +631,58 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Compact date chip row
+        // Compact date chip row — tap to jump to any past date.
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 10),
-          child: Row(
-            children: [
-              Text(
-                Localizations.localeOf(context).languageCode == 'tg'
-                    ? '${AppUtils.tgWeekdayLong(_selectedDate)}, ${_selectedDate.day} ${AppUtils.tgMonthShort(_selectedDate.month)}'
-                    : DateFormat(
-                        'EEEE, d MMM',
-                        AppUtils.intlLocale(Localizations.localeOf(context).languageCode),
-                      ).format(_selectedDate),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(999),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                ),
-                child: Text(
-                  AppUtils.formatHijriDateShort(context, _selectedDate),
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.6),
+          child: GestureDetector(
+            onTap: _pickDate,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    Localizations.localeOf(context).languageCode == 'tg'
+                        ? '${AppUtils.tgWeekdayLong(_selectedDate)}, ${_selectedDate.day} ${AppUtils.tgMonthShort(_selectedDate.month)}'
+                        : DateFormat(
+                            'EEEE, d MMM',
+                            AppUtils.intlLocale(Localizations.localeOf(context).languageCode),
+                          ).format(_selectedDate),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.edit_calendar_rounded,
+                  size: 15,
+                  color: AppTheme.primary.withValues(alpha: 0.8),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(999),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  ),
+                  child: Text(
+                    AppUtils.formatHijriDateShort(context, _selectedDate),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         Container(
@@ -625,12 +694,13 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
           ),
           child: DaySelector(
             selectedDate: _selectedDate,
+            firstDate: _earliestDate,
             onDateChanged: (date) {
               setState(() {
                 _selectedDate = date;
                 _viewMonth = DateTime(date.year, date.month, 1);
               });
-              _loadDayStatuses();
+              _loadDayStatuses(showSpinner: false);
               _loadMonthStats();
             },
             scrollController: _dayScrollController,
@@ -1027,7 +1097,8 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
                 _selectedDate = DateTime(year, month, dayNum);
                 _showMonthView = false;
               });
-              _loadDayStatuses();
+              _loadDayStatuses(showSpinner: false);
+              _scrollToSelected();
             },
       child: Container(
         width: size,

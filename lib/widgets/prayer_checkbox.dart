@@ -225,12 +225,17 @@ class DaySelector extends StatelessWidget {
   final ScrollController? scrollController;
   final int Function(DateTime date)? completionResolver;
 
+  /// Oldest day the strip can scroll back to (inclusive). When null, the strip
+  /// falls back to roughly a year of history.
+  final DateTime? firstDate;
+
   const DaySelector({
     super.key,
     required this.selectedDate,
     required this.onDateChanged,
     this.scrollController,
     this.completionResolver,
+    this.firstDate,
   });
 
   @override
@@ -238,6 +243,12 @@ class DaySelector extends StatelessWidget {
     final rawLocale = Localizations.localeOf(context).languageCode;
     final locale = AppUtils.intlLocale(rawLocale);
     final isTajik = rawLocale == 'tg';
+    final today = DateUtils.dateOnly(DateTime.now());
+    final earliest = firstDate != null
+        ? DateUtils.dateOnly(firstDate!)
+        : today.subtract(const Duration(days: 365));
+    // +1 to include both endpoints; clamp so we always show at least today.
+    final dayCount = today.difference(earliest).inDays + 1;
     return SizedBox(
       height: 86,
       child: ListView.builder(
@@ -245,6 +256,7 @@ class DaySelector extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         controller: scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 10),
+        itemCount: dayCount > 0 ? dayCount : 1,
         itemBuilder: (context, index) {
           final date = DateTime.now().subtract(Duration(days: index));
           final isSelected = DateUtils.isSameDay(date, selectedDate);
