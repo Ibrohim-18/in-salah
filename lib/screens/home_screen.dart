@@ -12,12 +12,14 @@ import '../l10n/app_localizations.dart';
 import '../models/prayer.dart';
 import '../providers/app_provider.dart';
 import '../services/prayer_time_service.dart';
+import '../services/quran_progress_service.dart';
 import '../utils/theme.dart';
 import '../utils/utils.dart';
 import '../widgets/liquid_background.dart';
 import '../widgets/branded_loading_screen.dart';
 import '../widgets/liquid_glass_container.dart';
 import '../widgets/prayer_card.dart';
+import 'quran_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -29,6 +31,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Timer? _timer;
+  final _quranProgress = QuranProgressService();
+  int _quranRead = 0;
 
   @override
   void initState() {
@@ -36,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+    _loadQuranProgress();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final prefs = await SharedPreferences.getInstance();
@@ -44,6 +49,20 @@ class _HomeScreenState extends State<HomeScreen> {
       await context.read<AppProvider>().ensureNotificationPermission();
       await prefs.setBool('notification_permission_asked', true);
     });
+  }
+
+  Future<void> _loadQuranProgress() async {
+    final read = await _quranProgress.overallReadCount();
+    if (!mounted) return;
+    setState(() => _quranRead = read);
+  }
+
+  Future<void> _openQuran() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QuranScreen()),
+    );
+    await _loadQuranProgress();
   }
 
   @override
@@ -103,6 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           _buildFocusPanel(context, nextPrayer, now, provider, t),
+                          const SizedBox(height: 14),
+                          _buildQuranCard(t),
                           const SizedBox(height: 14),
                           _buildPrayerSectionHeader(provider, t),
                           const SizedBox(height: 16),
@@ -654,6 +675,71 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildQuranCard(AppLocalizations t) {
+    final fraction =
+        (_quranRead / QuranProgressService.totalAyahs).clamp(0.0, 1.0);
+    final percent = (fraction * 100).toStringAsFixed(fraction > 0 ? 1 : 0);
+
+    return LiquidGlassContainer(
+      onTap: _openQuran,
+      baseColor: AppTheme.primary,
+      opacity: 0.12,
+      borderRadius: 22,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primary.withValues(alpha: 0.22),
+                  AppTheme.primaryDeep.withValues(alpha: 0.10),
+                ],
+              ),
+              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
+            ),
+            child: const Icon(Icons.menu_book_rounded,
+                color: AppTheme.primary, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.translate('quran'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _quranRead > 0
+                      ? '${t.translate('overallQuranProgress')} · $percent%'
+                      : t.translate('quranReadSubtitle'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: AppTheme.textMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded,
+              color: AppTheme.textMuted, size: 22),
+        ],
+      ),
     );
   }
 
