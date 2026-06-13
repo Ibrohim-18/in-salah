@@ -485,131 +485,104 @@ class _HomeScreenState extends State<HomeScreen> {
         nextPrayer != null && now.isAfter(nextAdhan) && now.isBefore(nextIqama);
     final targetTime = isIqamaPhase ? nextIqama : nextAdhan;
 
-    DateTime prevTime;
-    if (isIqamaPhase) {
-      prevTime = nextAdhan;
-    } else {
-      if (nextPrayer != null) {
-        final idx = provider.todayPrayers.indexOf(nextPrayer);
-        if (idx > 0) {
-          prevTime = provider.todayPrayers[idx - 1].iqamaTime;
-        } else {
-          final todayIsha = provider.todayPrayers.last.iqamaTime;
-          prevTime = todayIsha.subtract(const Duration(days: 1));
-        }
-      } else {
-        prevTime = provider.todayPrayers.last.iqamaTime;
-      }
-    }
-
     final diff = targetTime.difference(now);
     final hours = diff.inHours;
     final minutes = diff.inMinutes.remainder(60);
     final seconds = diff.inSeconds.remainder(60);
 
-    final totalDuration = targetTime.difference(prevTime).inSeconds;
-    final elapsedDuration = now.difference(prevTime).inSeconds;
-    final progress = totalDuration > 0
-        ? (elapsedDuration / totalDuration).clamp(0.0, 1.0)
-        : 0.0;
-
     final activeColor = isIqamaPhase ? AppTheme.info : AppTheme.primary;
-    return Stack(
-      children: [
-        LiquidGlassContainer(
-          baseColor: activeColor,
-          opacity: 0.10,
-          borderHighlight: true,
-          borderRadius: 24,
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+    return LiquidGlassContainer(
+      baseColor: activeColor,
+      opacity: 0.10,
+      borderHighlight: true,
+      borderRadius: 24,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // "Until {prayer}" label with the current phase chip.
+          Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.white.withValues(alpha: 0.04),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.07),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${t.translate('timeTo')} $nextName',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.58),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildClockUnit(hours, t.translate('hrs')),
-                                _buildClockSeparator(),
-                                _buildClockUnit(minutes, t.translate('min')),
-                                _buildClockSeparator(),
-                                _buildClockUnit(seconds, t.translate('sec')),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              Expanded(
+                child: Text(
+                  '${t.translate('timeTo')} $nextName',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.62),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      children: [
-                        _buildCountdownMetric(
-                          label: t.translate('adhan'),
-                          value: AppUtils.formatTime(nextAdhan),
-                          accent: activeColor,
-                          active: !isIqamaPhase,
-                        ),
-                        const SizedBox(height: 8),
-                        _buildCountdownMetric(
-                          label: t.translate('iqama'),
-                          value: AppUtils.formatTime(nextIqama),
-                          accent: activeColor,
-                          active: isIqamaPhase,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 12),
-              _buildDailyWisdom(now, t),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: activeColor.withValues(alpha: 0.14),
+                  border:
+                      Border.all(color: activeColor.withValues(alpha: 0.30)),
+                ),
+                child: Text(
+                  (isIqamaPhase ? t.translate('iqama') : t.translate('adhan'))
+                      .toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: activeColor,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
-        Positioned.fill(
-          child: IgnorePointer(
-            child: CustomPaint(
-              painter: FocusPanelTrailPainter(
-                progress: progress,
-                activeColor: activeColor,
-                isIqamaPhase: isIqamaPhase,
-                radius: 24,
+          const SizedBox(height: 18),
+          // Hero countdown: large digits filling the full card width.
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildClockUnit(hours, t.translate('hrs'), size: 56),
+                  _buildClockSeparator(size: 44),
+                  _buildClockUnit(minutes, t.translate('min'), size: 56),
+                  _buildClockSeparator(size: 44),
+                  _buildClockUnit(seconds, t.translate('sec'), size: 56),
+                ],
               ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 18),
+          // Adhan / iqama times, side by side across the full width.
+          Row(
+            children: [
+              Expanded(
+                child: _buildCountdownMetric(
+                  label: t.translate('adhan'),
+                  value: AppUtils.formatTime(nextAdhan),
+                  accent: activeColor,
+                  active: !isIqamaPhase,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildCountdownMetric(
+                  label: t.translate('iqama'),
+                  value: AppUtils.formatTime(nextIqama),
+                  accent: activeColor,
+                  active: isIqamaPhase,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildDailyWisdom(now, t),
+        ],
+      ),
     );
   }
 
@@ -865,40 +838,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// One countdown unit: the two-digit value with its short label tucked
   /// directly beneath, so hrs/min/sec read as a single tidy group.
-  Widget _buildClockUnit(int value, String label) {
+  Widget _buildClockUnit(int value, String label, {double size = 30}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           value.toString().padLeft(2, '0'),
           style: AppTheme.numericText(
-            size: 30,
+            size: size,
             color: Colors.white,
             weight: FontWeight.w700,
-            letterSpacing: -1.5,
+            letterSpacing: -size * 0.05,
           ),
         ),
-        const SizedBox(height: 1),
+        SizedBox(height: size >= 40 ? 4 : 1),
         Text(
-          label,
+          label.toUpperCase(),
           style: TextStyle(
-            fontSize: 8.5,
+            fontSize: size >= 40 ? 10.5 : 8.5,
             fontWeight: FontWeight.w700,
             color: Colors.white.withValues(alpha: 0.5),
-            letterSpacing: 0.8,
+            letterSpacing: 1.2,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildClockSeparator() {
+  Widget _buildClockSeparator({double size = 22}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 7, left: 3, right: 3),
+      padding: EdgeInsets.only(top: size * 0.28, left: size * 0.12, right: size * 0.12),
       child: Text(
         ':',
         style: TextStyle(
-          fontSize: 22,
+          fontSize: size,
           fontWeight: FontWeight.w700,
           color: Colors.white.withValues(alpha: 0.32),
         ),
@@ -983,114 +956,3 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class FocusPanelTrailPainter extends CustomPainter {
-  final double progress;
-  final Color activeColor;
-  final bool isIqamaPhase;
-  final double radius;
-
-  FocusPanelTrailPainter({
-    required this.progress,
-    required this.activeColor,
-    required this.isIqamaPhase,
-    required this.radius,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const strokeWidth = 2.3;
-    final inactiveColor = Colors.white.withValues(alpha: 0.035);
-    final inset = strokeWidth / 2;
-    final rect = Rect.fromLTWH(
-      inset,
-      inset,
-      size.width - strokeWidth,
-      size.height - strokeWidth,
-    );
-    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
-
-    final bgPaint = Paint()
-      ..color = inactiveColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawRRect(rrect, bgPaint);
-
-    final safeProgress = progress.clamp(0.0, 1.0);
-    final path = Path()..addRRect(rrect);
-    final metric = path.computeMetrics().first;
-    final totalLength = metric.length;
-    final startOffset = totalLength * 0.91;
-
-    // Smoke-like trail from the active inner accent bar to the outer border start.
-    final startX = size.width * 0.72;
-    final startY = isIqamaPhase ? 114.0 : 44.0;
-    final endX = size.width - 26.0;
-    final endY = 10.0;
-
-    final trailPath = Path()
-      ..moveTo(startX, startY)
-      ..cubicTo(
-        size.width * 0.78,
-        startY - 8,
-        size.width * 0.88,
-        endY + 24,
-        endX,
-        endY,
-      );
-
-    final trailPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          activeColor.withValues(alpha: 0.75),
-          activeColor.withValues(alpha: 0.20),
-          Colors.white.withValues(alpha: 0.02),
-        ],
-      ).createShader(Rect.fromLTWH(startX - 12, endY, 40, startY - endY + 20))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    canvas.drawPath(trailPath, trailPaint);
-
-    if (safeProgress <= 0) return;
-
-    final progressLength = metric.length * safeProgress;
-
-    final fgPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          activeColor.withValues(alpha: 0.55),
-          Colors.white.withValues(alpha: 0.95),
-          activeColor.withValues(alpha: 0.85),
-        ],
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    if (startOffset + progressLength <= totalLength) {
-      final subPath = metric.extractPath(
-        startOffset,
-        startOffset + progressLength,
-      );
-      canvas.drawPath(subPath, fgPaint);
-    } else {
-      final first = metric.extractPath(startOffset, totalLength);
-      final second = metric.extractPath(
-        0,
-        (startOffset + progressLength) - totalLength,
-      );
-      canvas.drawPath(first, fgPaint);
-      canvas.drawPath(second, fgPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant FocusPanelTrailPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.activeColor != activeColor ||
-        oldDelegate.isIqamaPhase != isIqamaPhase;
-  }
-}
