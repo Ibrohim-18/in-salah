@@ -390,6 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCountdownMetric({
+    required IconData icon,
     required String label,
     required String value,
     required Color accent,
@@ -397,57 +398,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 56),
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        color: Colors.white.withValues(alpha: 0.04),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        color: active
+            ? accent.withValues(alpha: 0.16)
+            : Colors.black.withValues(alpha: 0.18),
+        border: Border.all(
+          color: active
+              ? accent.withValues(alpha: 0.45)
+              : Colors.white.withValues(alpha: 0.08),
+        ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 7,
-            height: 32,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  active ? accent : Colors.white.withValues(alpha: 0.72),
-                  active
-                      ? accent.withValues(alpha: 0.18)
-                      : Colors.white.withValues(alpha: 0.14),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          Row(
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 8.5,
-                  fontWeight: FontWeight.w700,
-                  color: active ? accent : Colors.white.withValues(alpha: 0.74),
-                  letterSpacing: 0.9,
-                ),
+              Icon(
+                icon,
+                size: 13,
+                color: active ? accent : Colors.white.withValues(alpha: 0.6),
               ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: -0.4,
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color:
+                        active ? accent : Colors.white.withValues(alpha: 0.6),
+                    letterSpacing: 0.6,
+                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -0.4,
+            ),
           ),
         ],
       ),
@@ -490,99 +489,176 @@ class _HomeScreenState extends State<HomeScreen> {
     final minutes = diff.inMinutes.remainder(60);
     final seconds = diff.inSeconds.remainder(60);
 
+    // Progress through the current window, drawn as a frame around the card.
+    DateTime prevTime;
+    if (isIqamaPhase) {
+      prevTime = nextAdhan;
+    } else if (nextPrayer != null) {
+      final idx = provider.todayPrayers.indexOf(nextPrayer);
+      prevTime = idx > 0
+          ? provider.todayPrayers[idx - 1].iqamaTime
+          : provider.todayPrayers.last.iqamaTime.subtract(
+              const Duration(days: 1),
+            );
+    } else {
+      prevTime = provider.todayPrayers.last.iqamaTime;
+    }
+    final totalDuration = targetTime.difference(prevTime).inSeconds;
+    final elapsedDuration = now.difference(prevTime).inSeconds;
+    final progress = totalDuration > 0
+        ? (elapsedDuration / totalDuration).clamp(0.0, 1.0)
+        : 0.0;
+
     final activeColor = isIqamaPhase ? AppTheme.info : AppTheme.primary;
 
-    return LiquidGlassContainer(
-      baseColor: activeColor,
-      opacity: 0.10,
-      borderHighlight: true,
-      borderRadius: 24,
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // "Until {prayer}" label with the current phase chip.
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${t.translate('timeTo')} $nextName',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.62),
+    return Stack(
+      children: [
+        LiquidGlassContainer(
+          baseColor: activeColor,
+          opacity: 0.10,
+          borderHighlight: true,
+          borderRadius: 24,
+          padding: EdgeInsets.zero,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                // Decorative backdrop illustration (user-provided). Silently
+                // absent until assets/images/home_focus.png exists.
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  right: 0,
+                  width: 200,
+                  child: IgnorePointer(
+                    child: ShaderMask(
+                      shaderCallback: (rect) => LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Colors.transparent,
+                          Colors.white.withValues(alpha: 0.9),
+                        ],
+                        stops: const [0.0, 0.55],
+                      ).createShader(rect),
+                      blendMode: BlendMode.dstIn,
+                      child: Image.asset(
+                        'assets/images/home_focus.png',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.centerRight,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: activeColor.withValues(alpha: 0.14),
-                  border:
-                      Border.all(color: activeColor.withValues(alpha: 0.30)),
-                ),
-                child: Text(
-                  (isIqamaPhase ? t.translate('iqama') : t.translate('adhan'))
-                      .toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    color: activeColor,
-                    letterSpacing: 0.8,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left: label + big countdown.
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        '${t.translate('timeTo')} $nextName',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: activeColor,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: activeColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildClockUnit(
+                                          hours, t.translate('hrs'), size: 46),
+                                      _buildClockSeparator(size: 34),
+                                      _buildClockUnit(
+                                          minutes, t.translate('min'), size: 46),
+                                      _buildClockSeparator(size: 34),
+                                      _buildClockUnit(
+                                          seconds, t.translate('sec'), size: 46),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // Right: adhan / iqama time cards.
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              children: [
+                                _buildCountdownMetric(
+                                  icon: Icons.notifications_active_rounded,
+                                  label: t.translate('adhan'),
+                                  value: AppUtils.formatTime(nextAdhan),
+                                  accent: activeColor,
+                                  active: !isIqamaPhase,
+                                ),
+                                const SizedBox(height: 10),
+                                _buildCountdownMetric(
+                                  icon: Icons.mosque_rounded,
+                                  label: t.translate('iqama'),
+                                  value: AppUtils.formatTime(nextIqama),
+                                  accent: activeColor,
+                                  active: isIqamaPhase,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _buildDailyWisdom(now, t),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 18),
-          // Hero countdown: large digits filling the full card width.
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.center,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildClockUnit(hours, t.translate('hrs'), size: 56),
-                  _buildClockSeparator(size: 44),
-                  _buildClockUnit(minutes, t.translate('min'), size: 56),
-                  _buildClockSeparator(size: 44),
-                  _buildClockUnit(seconds, t.translate('sec'), size: 56),
-                ],
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _FocusBorderPainter(
+                progress: progress,
+                color: activeColor,
+                radius: 24,
               ),
             ),
           ),
-          const SizedBox(height: 18),
-          // Adhan / iqama times, side by side across the full width.
-          Row(
-            children: [
-              Expanded(
-                child: _buildCountdownMetric(
-                  label: t.translate('adhan'),
-                  value: AppUtils.formatTime(nextAdhan),
-                  accent: activeColor,
-                  active: !isIqamaPhase,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildCountdownMetric(
-                  label: t.translate('iqama'),
-                  value: AppUtils.formatTime(nextIqama),
-                  accent: activeColor,
-                  active: isIqamaPhase,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _buildDailyWisdom(now, t),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -954,5 +1030,57 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+/// Draws the focus panel's window-progress as a frame tracing the rounded
+/// border: a faint full-perimeter track with the elapsed portion filled.
+class _FocusBorderPainter extends CustomPainter {
+  final double progress; // 0..1
+  final Color color;
+  final double radius;
+
+  _FocusBorderPainter({
+    required this.progress,
+    required this.color,
+    required this.radius,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 2.4;
+    final inset = strokeWidth / 2;
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTRB(
+        inset,
+        inset,
+        size.width - inset,
+        size.height - inset,
+      ),
+      Radius.circular(radius - inset),
+    );
+
+    final track = Paint()
+      ..color = Colors.white.withValues(alpha: 0.06)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawRRect(rrect, track);
+
+    final clamped = progress.clamp(0.0, 1.0);
+    if (clamped <= 0) return;
+
+    final metric = (Path()..addRRect(rrect)).computeMetrics().first;
+    final extracted = metric.extractPath(0, metric.length * clamped);
+
+    final fill = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(extracted, fill);
+  }
+
+  @override
+  bool shouldRepaint(_FocusBorderPainter old) =>
+      old.progress != progress || old.color != color;
 }
 
