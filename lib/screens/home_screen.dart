@@ -110,8 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
                       child: Column(
                         children: [
-                          _buildHijriDateHeader(context, now),
-                          const SizedBox(height: 10),
                           if (provider.locationStatus != LocationStatus.available)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 10),
@@ -271,41 +269,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHijriDateHeader(BuildContext context, DateTime now) {
-    final hijriDate = AppUtils.formatHijriDate(context, now);
-    final gregorianDate = AppUtils.formatDate(context, now);
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                hijriDate,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                gregorianDate,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white.withValues(alpha: 0.45),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -552,10 +515,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Hijri + Gregorian date, tucked inside the card.
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              AppUtils.formatHijriDate(context, now),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white.withValues(alpha: 0.72),
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            AppUtils.formatDate(context, now),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withValues(alpha: 0.42),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: Colors.white.withValues(alpha: 0.07),
+                        ),
+                      ),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
