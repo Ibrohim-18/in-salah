@@ -196,12 +196,24 @@ class InsforgeService {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    await _migrateLegacyTokens(prefs);
 
-    _pkceVerifier = await _secureStorage.read(key: _pkceVerifierStorageKey);
-
-    final token = await _secureStorage.read(key: _accessTokenStorageKey);
-    final refresh = await _secureStorage.read(key: _refreshTokenStorageKey);
+    String? token;
+    String? refresh;
+    try {
+      await _migrateLegacyTokens(prefs);
+      _pkceVerifier = await _secureStorage.read(key: _pkceVerifierStorageKey);
+      token = await _secureStorage.read(key: _accessTokenStorageKey);
+      refresh = await _secureStorage.read(key: _refreshTokenStorageKey);
+    } catch (e) {
+      // Encrypted storage can fail to decrypt after an app update or keystore
+      // reset (a common Android crash). Never let that block startup: drop the
+      // unreadable entries and continue as a logged-out session.
+      debugPrint('Secure storage read failed, clearing: $e');
+      try {
+        await _secureStorage.deleteAll();
+      } catch (_) {}
+      return;
+    }
     if (token == null) return;
 
     // Try to validate the current token

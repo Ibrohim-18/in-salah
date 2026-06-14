@@ -37,9 +37,23 @@ Future<void> main() async {
     ),
   );
 
-  await InsforgeService.instance.init();
-  await initializeDateFormatting();
-  await initializeBackgroundReschedule();
+  // Each step is guarded so a single failure can never leave the app hanging
+  // on the native splash before runApp — the user must always reach the UI.
+  try {
+    await InsforgeService.instance.init();
+  } catch (e) {
+    debugPrint('InsforgeService init failed: $e');
+  }
+  try {
+    await initializeDateFormatting();
+  } catch (e) {
+    debugPrint('Date formatting init failed: $e');
+  }
+  try {
+    await initializeBackgroundReschedule();
+  } catch (e) {
+    debugPrint('Background reschedule init failed: $e');
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
