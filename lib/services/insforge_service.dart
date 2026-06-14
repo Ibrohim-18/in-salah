@@ -188,6 +188,9 @@ class InsforgeService {
   Stream<InsforgeUser?> get onAuthStateChange => _authController.stream;
 
   static const _oauthTimeout = Duration(seconds: 20);
+  // Hard ceiling on every auth/DB request so a stalled network can never hang
+  // the loading screen or a sign-in attempt forever.
+  static const _httpTimeout = Duration(seconds: 20);
 
   Map<String, String> get _authHeaders => {
     'Content-Type': 'application/json',
@@ -351,11 +354,13 @@ class InsforgeService {
 
   /// Returns true if email verification is required.
   Future<bool> signUp(String email, String password) async {
-    final resp = await http.post(
-      Uri.parse('$_base/api/auth/users?client_type=mobile'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    final resp = await http
+        .post(
+          Uri.parse('$_base/api/auth/users?client_type=mobile'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}),
+        )
+        .timeout(_httpTimeout);
     final data = await _parse(resp);
     if (data['requireEmailVerification'] == true) return true;
     await _applySession(data);
@@ -363,21 +368,25 @@ class InsforgeService {
   }
 
   Future<void> signIn(String email, String password) async {
-    final resp = await http.post(
-      Uri.parse('$_base/api/auth/sessions?client_type=mobile'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    final resp = await http
+        .post(
+          Uri.parse('$_base/api/auth/sessions?client_type=mobile'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}),
+        )
+        .timeout(_httpTimeout);
     final data = await _parse(resp);
     await _applySession(data);
   }
 
   Future<void> verifyEmail(String email, String code) async {
-    final resp = await http.post(
-      Uri.parse('$_base/api/auth/email/verify?client_type=mobile'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'otp': code}),
-    );
+    final resp = await http
+        .post(
+          Uri.parse('$_base/api/auth/email/verify?client_type=mobile'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'otp': code}),
+        )
+        .timeout(_httpTimeout);
     final data = await _parse(resp);
     await _applySession(data);
   }
@@ -463,11 +472,13 @@ class InsforgeService {
   Future<void> upsertRecord(String table, Map<String, dynamic> data) async {
     if (_accessToken == null) return;
     try {
-      await http.post(
-        Uri.parse('$_base/api/database/records/$table'),
-        headers: {..._authHeaders, 'Prefer': 'resolution=merge-duplicates'},
-        body: jsonEncode([data]),
-      );
+      await http
+          .post(
+            Uri.parse('$_base/api/database/records/$table'),
+            headers: {..._authHeaders, 'Prefer': 'resolution=merge-duplicates'},
+            body: jsonEncode([data]),
+          )
+          .timeout(_httpTimeout);
     } catch (e) {
       debugPrint('InsForge DB Error: $e');
     }
@@ -547,7 +558,8 @@ class InsforgeService {
       ).replace(
         queryParameters: {'user_id': 'eq.$userId', 'limit': '10000'},
       );
-      final resp = await http.get(uri, headers: _authHeaders);
+      final resp =
+          await http.get(uri, headers: _authHeaders).timeout(_httpTimeout);
       if (resp.statusCode >= 400) {
         debugPrint(
           'InsForge missed prayers fetch error (${resp.statusCode}): ${resp.body}',
@@ -571,7 +583,8 @@ class InsforgeService {
       final uri = Uri.parse(
         '$_base/api/database/records/user_profiles',
       ).replace(queryParameters: {'id': 'eq.$userId', 'limit': '1'});
-      final resp = await http.get(uri, headers: _authHeaders);
+      final resp =
+          await http.get(uri, headers: _authHeaders).timeout(_httpTimeout);
 
       if (resp.statusCode >= 400) {
         debugPrint('InsForge DB Read Error (${resp.statusCode}): ${resp.body}');
