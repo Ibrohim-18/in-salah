@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../providers/app_provider.dart';
 import '../utils/theme.dart';
 import '../utils/utils.dart';
+import '../widgets/animated_number.dart';
 import '../widgets/liquid_background.dart';
 import '../widgets/prayer_checkbox.dart';
 
@@ -443,8 +444,8 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                '$percent',
+              AnimatedDigits(
+                value: '$percent',
                 style: AppTheme.numericText(
                   size: 26,
                   color: Colors.white,
@@ -474,8 +475,8 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
   }) {
     return Column(
       children: [
-        Text(
-          value,
+        AnimatedDigits(
+          value: value,
           style: TextStyle(
             color: color,
             fontSize: 20,
@@ -504,32 +505,32 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
     final formatted = _formatCompact(remaining);
     return Column(
       children: [
-        RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: formatted,
-                style: const TextStyle(
-                  color: AppTheme.info,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  height: 1.1,
-                ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AnimatedDigits(
+              value: formatted,
+              style: const TextStyle(
+                color: AppTheme.info,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                height: 1.1,
               ),
-              TextSpan(
-                text: ' ${t.translate('left')}',
-                style: TextStyle(
-                  color: AppTheme.info.withValues(alpha: 0.7),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.1,
-                  height: 1.1,
-                ),
+            ),
+            Text(
+              ' ${t.translate('left')}',
+              style: TextStyle(
+                color: AppTheme.info.withValues(alpha: 0.7),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.1,
+                height: 1.1,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
         const SizedBox(height: 2),
         Text(
