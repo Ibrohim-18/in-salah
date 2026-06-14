@@ -968,12 +968,15 @@ class _HomeScreenState extends State<HomeScreen> {
               baseColor: AppTheme.primary,
               opacity: 0.1,
               borderHighlight: true,
-              child: Center(
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 70,
-                  height: 70,
-                  fit: BoxFit.cover,
+              child: Padding(
+                padding: const EdgeInsets.all(3),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 98,
+                    height: 98,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
