@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _timer;
   final _quranProgress = QuranProgressService();
   int _quranRead = 0;
+  int _salawatCount = 0;
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() {});
     });
     _loadQuranProgress();
+    _loadSalawat();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final prefs = await SharedPreferences.getInstance();
@@ -55,6 +57,28 @@ class _HomeScreenState extends State<HomeScreen> {
     final read = await _quranProgress.overallReadCount();
     if (!mounted) return;
     setState(() => _quranRead = read);
+  }
+
+  String _salawatDayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month}-${now.day}';
+  }
+
+  Future<void> _loadSalawat() async {
+    final prefs = await SharedPreferences.getInstance();
+    final count = prefs.getString('salawat_date') == _salawatDayKey()
+        ? (prefs.getInt('salawat_count') ?? 0)
+        : 0;
+    if (!mounted) return;
+    setState(() => _salawatCount = count);
+  }
+
+  Future<void> _incrementSalawat() async {
+    HapticFeedback.lightImpact();
+    setState(() => _salawatCount++);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('salawat_date', _salawatDayKey());
+    await prefs.setInt('salawat_count', _salawatCount);
   }
 
   Future<void> _openQuran() async {
@@ -121,7 +145,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           _buildFocusPanel(context, nextPrayer, now, provider, t),
                           const SizedBox(height: 14),
-                          _buildQuranCard(t),
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: _buildQuranCard(t)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _buildSalawatCard(t)),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 14),
                           _buildPrayerSectionHeader(provider, t),
                           const SizedBox(height: 16),
@@ -680,59 +713,117 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: _openQuran,
       baseColor: AppTheme.primary,
       opacity: 0.12,
-      borderRadius: 22,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: Row(
+      borderRadius: 20,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primary.withValues(alpha: 0.22),
-                  AppTheme.primaryDeep.withValues(alpha: 0.10),
-                ],
-              ),
-              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
-            ),
-            child: const Icon(Icons.menu_book_rounded,
-                color: AppTheme.primary, size: 22),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildCardIcon(Icons.menu_book_rounded, AppTheme.primary),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppTheme.textMuted, size: 20),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t.translate('quran'),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  _quranRead > 0
-                      ? '${t.translate('overallQuranProgress')} · $percent%'
-                      : t.translate('quranReadSubtitle'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: AppTheme.textMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 12),
+          Text(
+            t.translate('quran'),
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              color: AppTheme.textMuted, size: 22),
+          const SizedBox(height: 3),
+          Text(
+            _quranRead > 0
+                ? '${t.translate('overallQuranProgress')} · $percent%'
+                : t.translate('quranReadSubtitle'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSalawatCard(AppLocalizations t) {
+    return LiquidGlassContainer(
+      onTap: _incrementSalawat,
+      baseColor: AppTheme.info,
+      opacity: 0.12,
+      borderRadius: 20,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildCardIcon(Icons.favorite_rounded, AppTheme.info),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '$_salawatCount',
+                    style: AppTheme.numericText(
+                      size: 22,
+                      color: AppTheme.info,
+                      weight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            t.translate('salawat'),
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            t.translate('salawatSubtitle'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardIcon(IconData icon, Color accent) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(13),
+        gradient: LinearGradient(
+          colors: [
+            accent.withValues(alpha: 0.22),
+            accent.withValues(alpha: 0.08),
+          ],
+        ),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
+      ),
+      child: Icon(icon, color: accent, size: 21),
     );
   }
 
