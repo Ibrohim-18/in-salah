@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
 import '../utils/theme.dart';
+import '../widgets/animated_number.dart';
 import '../widgets/liquid_background.dart';
 
 class TasbeehPreset {
@@ -341,22 +342,14 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 120),
-                      transitionBuilder: (child, anim) => ScaleTransition(
-                        scale: anim,
-                        child: FadeTransition(opacity: anim, child: child),
-                      ),
-                      child: Text(
-                        '$_count',
-                        key: ValueKey<int>(_count),
-                        textAlign: TextAlign.center,
-                        style: AppTheme.numericText(
-                          size: 78,
-                          color: Colors.white,
-                          weight: FontWeight.w700,
-                          letterSpacing: -2.5,
-                        ),
+                    AnimatedDigits(
+                      value: '$_count',
+                      duration: const Duration(milliseconds: 380),
+                      style: AppTheme.numericText(
+                        size: 78,
+                        color: Colors.white,
+                        weight: FontWeight.w700,
+                        letterSpacing: -2.5,
                       ),
                     ),
                     const SizedBox(height: 4),

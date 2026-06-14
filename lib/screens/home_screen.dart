@@ -15,6 +15,7 @@ import '../services/prayer_time_service.dart';
 import '../services/quran_progress_service.dart';
 import '../utils/theme.dart';
 import '../utils/utils.dart';
+import '../widgets/animated_number.dart';
 import '../widgets/liquid_background.dart';
 import '../widgets/branded_loading_screen.dart';
 import '../widgets/liquid_glass_container.dart';
@@ -804,8 +805,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerRight,
-                          child: Text(
-                            '$_salawatCount',
+                          child: AnimatedDigits(
+                            value: '$_salawatCount',
+                            direction: 1, // a tally only ever climbs
                             style: AppTheme.numericText(
                               size: 22,
                               color: AppTheme.info,
@@ -1054,8 +1056,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          value.toString().padLeft(2, '0'),
+        AnimatedDigits(
+          value: value.toString().padLeft(2, '0'),
+          direction: -1, // a countdown always rolls downward
           style: AppTheme.numericText(
             size: size,
             color: Colors.white,
