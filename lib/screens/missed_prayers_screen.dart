@@ -727,11 +727,11 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
           ...['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map((name) {
             final isCompleted = _prayerStatuses[name] ?? false;
             String prayerTimeStr = '';
-            DateTime? prayerDateTime;
+            DateTime? unlockTime;
             for (final prayer in provider.todayPrayers) {
               if (prayer.name == name) {
                 prayerTimeStr = AppUtils.formatTime(prayer.time);
-                prayerDateTime = prayer.time;
+                unlockTime = provider.prayerUnlockTime(prayer);
                 break;
               }
             }
@@ -744,10 +744,9 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
 
             if (_selectedDate.isAfter(now) && !isSelectedToday) {
               isFuture = true;
-            } else if (isSelectedToday && prayerDateTime != null) {
-              isFuture = prayerDateTime.isAfter(
-                now.add(const Duration(minutes: 1)),
-              );
+            } else if (isSelectedToday && unlockTime != null) {
+              // Today: unlock at iqama when set, otherwise at adhan.
+              isFuture = unlockTime.isAfter(now);
             }
 
             return PrayerCheckbox(
@@ -819,14 +818,8 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
     );
   }
 
-  int _todayPrayersAvailableCount(AppProvider provider) {
-    final now = DateTime.now();
-    int count = 0;
-    for (final p in provider.todayPrayers) {
-      if (!p.time.isAfter(now)) count++;
-    }
-    return count;
-  }
+  int _todayPrayersAvailableCount(AppProvider provider) =>
+      provider.getPastPrayersToday();
 
   Widget _bulkButton({
     required String label,

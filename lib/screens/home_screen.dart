@@ -134,7 +134,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final prayer = provider.todayPrayers[index];
-                        final isFuture = prayer.time.isAfter(now);
+                        final isFuture =
+                            provider.prayerUnlockTime(prayer).isAfter(now);
                         final isPast = prayer.time.isBefore(now);
                         final isNext = prayer == nextPrayer;
                         

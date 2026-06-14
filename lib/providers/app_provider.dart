@@ -314,12 +314,20 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// The moment a prayer becomes markable: its iqama time when the user has
+  /// configured an iqama delay for it, otherwise the adhan time. So a prayer
+  /// with an iqama set only unlocks once iqama passes; without one, at adhan.
+  DateTime prayerUnlockTime(Prayer prayer) {
+    final offset = _settings.iqamaTimes[prayer.name];
+    return (offset != null && offset > 0) ? prayer.iqamaTime : prayer.time;
+  }
+
   int getPastPrayersToday() {
     final now = DateTime.now();
     int count = 0;
     for (final prayer in _todayPrayers) {
-      // Small buffer, assuming if prayer time is exactly now it's basically past
-      if (prayer.time.isBefore(now) || prayer.time.isAtSameMomentAs(now)) {
+      final unlock = prayerUnlockTime(prayer);
+      if (!unlock.isAfter(now)) {
         count++;
       }
     }
