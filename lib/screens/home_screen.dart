@@ -493,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   top: 0,
                   bottom: 0,
                   right: 0,
-                  width: 200,
+                  width: 280,
                   child: IgnorePointer(
                     child: ShaderMask(
                       shaderCallback: (rect) => LinearGradient(
@@ -503,14 +503,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           Colors.transparent,
                           Colors.white.withValues(alpha: 1.0),
                         ],
-                        stops: const [0.0, 0.42],
+                        stops: const [0.0, 0.38],
                       ).createShader(rect),
                       blendMode: BlendMode.dstIn,
-                      child: Image.asset(
-                        'assets/images/home_focus.png',
-                        fit: BoxFit.cover,
-                        alignment: Alignment.centerRight,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      child: ColorFiltered(
+                        // Lift brightness + contrast so the dark illustration
+                        // stands out against the equally-dark card.
+                        colorFilter: const ColorFilter.matrix(<double>[
+                          1.45, 0, 0, 0, 22,
+                          0, 1.45, 0, 0, 22,
+                          0, 0, 1.45, 0, 30,
+                          0, 0, 0, 1, 0,
+                        ]),
+                        child: Image.asset(
+                          'assets/images/home_focus.png',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.centerRight,
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                        ),
                       ),
                     ),
                   ),
