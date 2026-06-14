@@ -25,6 +25,11 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
   Map<String, bool> _prayerStatuses = {};
   Map<String, int> _monthStats = {};
   Map<int, int> _monthDayCompletions = {};
+  // Day-strip completion dots, cached per calendar month so scrolling into an
+  // adjacent month shows its marks immediately instead of going blank until a
+  // day is tapped.
+  final Map<String, Map<int, int>> _stripMonthCache = {};
+  final Set<String> _stripMonthsLoading = {};
   bool _isLoading = false;
   bool _showMonthView = false;
   final ScrollController _dayScrollController = ScrollController();
@@ -59,6 +64,7 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
 
   void _onProviderChanged() {
     if (!mounted) return;
+    _stripMonthCache.clear();
     _loadDayStatuses(showSpinner: false);
     _loadMonthStats();
   }
@@ -95,8 +101,44 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
       setState(() {
         _monthStats = stats;
         _monthDayCompletions = dayCompletions;
+        _stripMonthCache[_monthKey(_viewMonth.year, _viewMonth.month)] =
+            dayCompletions;
       });
     }
+  }
+
+  String _monthKey(int year, int month) => '$year-$month';
+
+  /// Completion count for a strip day, served from the per-month cache. A cache
+  /// miss returns 0 and kicks off a lazy load so dots fill in as the user
+  /// scrolls across month boundaries.
+  int _resolveStripCompletion(DateTime date) {
+    final cached = _stripMonthCache[_monthKey(date.year, date.month)];
+    if (cached != null) return cached[date.day] ?? 0;
+    _ensureStripMonth(date.year, date.month);
+    return 0;
+  }
+
+  void _ensureStripMonth(int year, int month) {
+    final key = _monthKey(year, month);
+    if (_stripMonthCache.containsKey(key) ||
+        _stripMonthsLoading.contains(key)) {
+      return;
+    }
+    _stripMonthsLoading.add(key);
+    // Defer the load+setState so we never mutate state during build.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        _stripMonthsLoading.remove(key);
+        return;
+      }
+      final completions = await context
+          .read<AppProvider>()
+          .getMonthDayCompletions(year, month);
+      _stripMonthsLoading.remove(key);
+      if (!mounted) return;
+      setState(() => _stripMonthCache[key] = completions);
+    });
   }
 
   void _changeMonth(int delta) {
@@ -705,13 +747,7 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
               _loadMonthStats();
             },
             scrollController: _dayScrollController,
-            completionResolver: (date) {
-              if (date.year != _viewMonth.year ||
-                  date.month != _viewMonth.month) {
-                return 0;
-              }
-              return _monthDayCompletions[date.day] ?? 0;
-            },
+            completionResolver: _resolveStripCompletion,
           ),
         ),
         const SizedBox(height: 16),
