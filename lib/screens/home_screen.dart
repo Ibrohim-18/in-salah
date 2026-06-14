@@ -145,15 +145,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           _buildFocusPanel(context, nextPrayer, now, provider, t),
                           const SizedBox(height: 14),
-                          IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(child: _buildQuranCard(t)),
-                                const SizedBox(width: 12),
-                                Expanded(child: _buildSalawatCard(t)),
-                              ],
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildQuranCard(t)),
+                              const SizedBox(width: 12),
+                              Expanded(child: _buildSalawatCard(t)),
+                            ],
                           ),
                           const SizedBox(height: 14),
                           _buildPrayerSectionHeader(provider, t),
