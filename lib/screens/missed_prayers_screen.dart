@@ -1340,23 +1340,58 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
       monthDays = DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
     }
 
+    // Overall average across the five prayers for the header chip.
+    final totalCompleted = monthDays > 0
+        ? prayers.fold<int>(
+            0,
+            (sum, p) => sum + math.min(_monthStats[p] ?? 0, monthDays),
+          )
+        : 0;
+    final avgPct =
+        monthDays > 0 ? (totalCompleted / (monthDays * 5)).clamp(0.0, 1.0) : 0.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 6, bottom: 10),
-          child: Text(
-            t.translate('breakdown'),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.55),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.1,
-            ),
+          child: Row(
+            children: [
+              Text(
+                t.translate('breakdown'),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.1,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: AppTheme.primary.withValues(alpha: 0.12),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.28),
+                  ),
+                ),
+                child: Text(
+                  '⌀ ${(avgPct * 100).round()}%',
+                  style: const TextStyle(
+                    color: AppTheme.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.035),
             borderRadius: BorderRadius.circular(20),
@@ -1371,62 +1406,72 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
                   ? (rawCompleted / monthDays).clamp(0.0, 1.0)
                   : 0.0;
               final color = _prayerColors[prayer] ?? AppTheme.primary;
+              final name = _localizedPrayerName(prayer, t);
               return Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Column(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: color,
-                          ),
+                    // Colored initial chip for quick identification.
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: color.withValues(alpha: 0.16),
+                        border:
+                            Border.all(color: color.withValues(alpha: 0.40)),
+                      ),
+                      child: Text(
+                        name.characters.first,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          _localizedPrayerName(prayer, t),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: -0.1,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '$completed / $monthDays',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 36,
-                          child: Text(
-                            '${(pct * 100).round()}%',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: color,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: pct.clamp(0.0, 1.0),
-                        backgroundColor: Colors.white.withValues(alpha: 0.04),
-                        valueColor: AlwaysStoppedAnimation<Color>(color),
-                        minHeight: 5,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: -0.1,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '$completed / $monthDays',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                '${(pct * 100).round()}%',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: color,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _BreakdownBar(value: pct, color: color),
+                        ],
                       ),
                     ),
                   ],
@@ -1436,6 +1481,65 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A rounded, animated stat bar with a subtle gradient fill and accent glow.
+class _BreakdownBar extends StatelessWidget {
+  final double value; // 0..1
+  final Color color;
+
+  const _BreakdownBar({required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 7,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ColoredBox(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: value.clamp(0.0, 1.0)),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, v, _) {
+                    return FractionallySizedBox(
+                      widthFactor: v <= 0 ? 0.0001 : v,
+                      heightFactor: 1,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          gradient: LinearGradient(
+                            colors: [
+                              color.withValues(alpha: 0.7),
+                              color,
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.45),
+                              blurRadius: 6,
+                              spreadRadius: -1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
