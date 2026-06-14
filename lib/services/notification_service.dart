@@ -37,7 +37,6 @@ class NotificationService {
   static const _prayerChannelName = 'Prayer Reminders';
   static const _prayerChannelDesc = 'Adhan and prayer time reminders';
 
-
   Future<void> init() async {
     if (_initialized) return;
     if (kIsWeb) {
@@ -49,7 +48,7 @@ class NotificationService {
     await _configureLocalTimeZone();
 
     const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
+      'ic_stat_notification',
     );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -129,8 +128,8 @@ class NotificationService {
       if (androidPlugin != null) {
         final enabled = await androidPlugin.areNotificationsEnabled();
         if (!(enabled ?? false)) {
-          final requested =
-              await androidPlugin.requestNotificationsPermission();
+          final requested = await androidPlugin
+              .requestNotificationsPermission();
           if (!(requested ?? false)) {
             final status = await Permission.notification.request();
             if (!status.isGranted) return false;
@@ -177,6 +176,7 @@ class NotificationService {
       channelId,
       channelName,
       channelDescription: channelDescription,
+      icon: 'ic_stat_notification',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
@@ -233,9 +233,7 @@ class NotificationService {
           channelDescription: _prayerChannelDesc,
           sound: isCustomSound ? sound : null,
         ),
-        iOS: _iosDetails(
-          sound: isCustomSound ? '$sound.aiff' : null,
-        ),
+        iOS: _iosDetails(sound: isCustomSound ? '$sound.aiff' : null),
       ),
       payload: '$title|${dateTime.toIso8601String()}',
       androidScheduleMode: scheduleMode,
@@ -283,25 +281,38 @@ class NotificationService {
     return pending.length;
   }
 
-  /// Fires a one-off notification a few seconds in the future so the user
-  /// can verify that permissions, channels and OS battery rules let the
-  /// notification actually surface.
+  /// Fires a one-off notification immediately so the user can verify that
+  /// permissions and channels let notifications surface.
   Future<void> sendTestNotification({
     required String title,
     required String body,
     String sound = 'default',
-    Duration delay = const Duration(seconds: 5),
   }) async {
     if (!_initialized) await init();
     if (kIsWeb) return;
 
-    final fireAt = DateTime.now().add(delay);
-    await schedulePrayerNotification(
-      id: 99999,
-      title: title,
-      body: body,
-      dateTime: fireAt,
-      sound: sound,
+    final isCustomSound = sound != 'default';
+    final channelId = isCustomSound
+        ? 'prayer_reminders_$sound'
+        : _prayerChannelId;
+    final channelName = isCustomSound
+        ? '$_prayerChannelName ($sound)'
+        : _prayerChannelName;
+
+    await _plugin.show(
+      99999,
+      title,
+      body,
+      NotificationDetails(
+        android: _androidDetails(
+          channelId: channelId,
+          channelName: channelName,
+          channelDescription: _prayerChannelDesc,
+          sound: isCustomSound ? sound : null,
+        ),
+        iOS: _iosDetails(sound: isCustomSound ? '$sound.aiff' : null),
+      ),
+      payload: '$title|${DateTime.now().toIso8601String()}',
     );
   }
 }
