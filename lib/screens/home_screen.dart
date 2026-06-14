@@ -501,9 +501,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         end: Alignment.centerRight,
                         colors: [
                           Colors.transparent,
-                          Colors.white.withValues(alpha: 0.9),
+                          Colors.white.withValues(alpha: 1.0),
                         ],
-                        stops: const [0.0, 0.55],
+                        stops: const [0.0, 0.42],
                       ).createShader(rect),
                       blendMode: BlendMode.dstIn,
                       child: Image.asset(
