@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/theme.dart';
@@ -10,31 +12,28 @@ class BrandedLoadingScreen extends StatefulWidget {
   State<BrandedLoadingScreen> createState() => _BrandedLoadingScreenState();
 }
 
-class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+class _BrandedLoadingScreenState extends State<BrandedLoadingScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _pulse; // ripple rings + breathing
+  late final AnimationController _dots; // bottom loader
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _pulse = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-
-    _fadeAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+      duration: const Duration(milliseconds: 2600),
+    )..repeat();
+    _dots = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pulse.dispose();
+    _dots.dispose();
     super.dispose();
   }
 
@@ -47,26 +46,45 @@ class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with Single
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo Section — the app's own ruku' brand mark.
-              ScaleTransition(
-                scale: _scaleAnimation,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
+              // Logo with expanding ripple rings radiating outward.
+              SizedBox(
+                width: 240,
+                height: 240,
+                child: AnimatedBuilder(
+                  animation: _pulse,
+                  builder: (context, child) {
+                    // Gentle breathing for the logo itself.
+                    final breathe =
+                        1.0 + 0.04 * math.sin(_pulse.value * 2 * math.pi);
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CustomPaint(
+                          size: const Size(240, 240),
+                          painter: _RipplePainter(
+                            progress: _pulse.value,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        Transform.scale(scale: breathe, child: child),
+                      ],
+                    );
+                  },
                   child: Container(
-                    width: 112,
-                    height: 112,
+                    width: 116,
+                    height: 116,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primary.withValues(alpha: 0.32),
-                          blurRadius: 44,
-                          spreadRadius: 6,
+                          color: AppTheme.primary.withValues(alpha: 0.45),
+                          blurRadius: 48,
+                          spreadRadius: 2,
                         ),
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(32),
                       child: Image.asset(
                         'assets/images/logo.png',
                         fit: BoxFit.cover,
@@ -75,14 +93,13 @@ class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with Single
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
-              // Brand Name
+              const SizedBox(height: 34),
               Text(
                 'IN SALAH',
                 style: AppTheme.numericText(
-                  size: 32,
+                  size: 30,
                   weight: FontWeight.w700,
-                  letterSpacing: 4.0,
+                  letterSpacing: 5.0,
                   color: AppTheme.textPrimary,
                 ),
               ),
@@ -95,24 +112,42 @@ class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with Single
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.primary.withValues(alpha: 0.6),
-                      letterSpacing: 1.5,
+                      color: AppTheme.primary.withValues(alpha: 0.65),
+                      letterSpacing: 2.0,
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 96),
-              // Minimal, calm loader to match the spiritual tone.
-              SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.2,
-                  strokeCap: StrokeCap.round,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppTheme.primary.withValues(alpha: 0.55),
-                  ),
-                ),
+              const SizedBox(height: 56),
+              // Modern three-dot loader with a travelling pulse.
+              AnimatedBuilder(
+                animation: _dots,
+                builder: (context, _) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(3, (i) {
+                      final phase = (_dots.value - i * 0.18) % 1.0;
+                      final wave = math.sin(phase * math.pi).clamp(0.0, 1.0);
+                      final scale = 0.7 + 0.6 * wave;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        child: Transform.scale(
+                          scale: scale,
+                          child: Container(
+                            width: 9,
+                            height: 9,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.primary.withValues(
+                                alpha: 0.35 + 0.55 * wave,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
               ),
             ],
           ),
@@ -120,4 +155,38 @@ class _BrandedLoadingScreenState extends State<BrandedLoadingScreen> with Single
       ),
     );
   }
+}
+
+/// Concentric rings that expand from the logo and fade out, staggered so
+/// there's always a wave of motion — a calm, modern radar/ripple pulse.
+class _RipplePainter extends CustomPainter {
+  final double progress; // 0..1 looping
+  final Color color;
+
+  static const int _ringCount = 3;
+  static const double _minRadius = 60;
+  static const double _maxRadius = 116;
+
+  _RipplePainter({required this.progress, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    for (int i = 0; i < _ringCount; i++) {
+      final t = (progress + i / _ringCount) % 1.0;
+      final radius = _minRadius + (_maxRadius - _minRadius) * t;
+      // Fade in quickly, then out as it expands.
+      final opacity = (math.sin(t * math.pi) * 0.5).clamp(0.0, 1.0);
+      if (opacity <= 0.01) continue;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = color.withValues(alpha: opacity * 0.5);
+      canvas.drawCircle(center, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RipplePainter old) =>
+      old.progress != progress || old.color != color;
 }
