@@ -380,6 +380,8 @@
   "batteryOptimizationTitle": "Если уведомления молчат",
   "batteryOptimizationSubtitle": "Откройте dontkillmyapp.com и следуйте инструкции для вашего телефона",
   "notificationsBlocked": "Уведомления отключены в настройках системы.",
+  "enableNotificationsPrompt": "Откройте настройки телефона и включите уведомления, чтобы напоминания о намазе приходили в шторку.",
+  "openSettings": "Открыть настройки",
   "testNotificationTitle": "Тест In Salah",
   "testNotificationBody": "Если вы это видите — уведомления работают.",
   "testNotificationQueued": "Тест отправлен. Если он появился, уведомления могут показываться.",

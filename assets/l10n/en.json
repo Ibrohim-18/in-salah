@@ -380,6 +380,8 @@
   "batteryOptimizationTitle": "If reminders are silent",
   "batteryOptimizationSubtitle": "Open dontkillmyapp.com for your phone vendor and follow the steps",
   "notificationsBlocked": "Notifications are disabled in system settings.",
+  "enableNotificationsPrompt": "Open phone settings and turn on notifications so prayer reminders arrive in your notification shade.",
+  "openSettings": "Open settings",
   "testNotificationTitle": "In Salah test",
   "testNotificationBody": "If you see this, reminders are working.",
   "testNotificationQueued": "Test sent. If it appears, reminders can surface.",

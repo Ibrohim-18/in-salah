@@ -380,6 +380,8 @@
   "batteryOptimizationTitle": "Агар хотиррасониҳо хомӯш бошанд",
   "batteryOptimizationSubtitle": "dontkillmyapp.com-ро кушоед ва дастурҳои телефонатонро иҷро кунед",
   "notificationsBlocked": "Огоҳиҳо дар танзимоти система хомӯшанд.",
+  "enableNotificationsPrompt": "Танзимоти телефонро кушоед ва огоҳиҳоро фаъол кунед, то ёдоварии намоз ба пардаи огоҳиҳо ояд.",
+  "openSettings": "Кушодани танзимот",
   "testNotificationTitle": "Санҷиши In Salah",
   "testNotificationBody": "Агар шумо инро бинед — огоҳиҳо кор мекунанд.",
   "testNotificationQueued": "Санҷиш фиристода шуд. Агар намоён шуд, огоҳиҳо кор мекунанд.",

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/app_provider.dart';
@@ -1183,25 +1184,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final granted = await provider.ensureNotificationPermission();
     if (!context.mounted) return;
     if (!granted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.translate('notificationsBlocked')),
-          backgroundColor: AppTheme.danger,
-        ),
-      );
+      // System notifications are off; they can only be re-enabled from the OS
+      // settings. Offer to jump there instead of dead-ending on an in-app
+      // message — that's the only way to get reminders into the shade.
+      await _promptEnableNotifications(context, t);
       return;
     }
+    // The test fires straight to the system notification shade.
     await provider.sendTestNotification(
       title: t.translate('testNotificationTitle'),
       body: t.translate('testNotificationBody'),
     );
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(t.translate('testNotificationQueued')),
-        backgroundColor: AppTheme.primary,
+  }
+
+  Future<void> _promptEnableNotifications(
+    BuildContext context,
+    AppLocalizations t,
+  ) async {
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceRaised,
+        title: Text(
+          t.translate('notificationsBlocked'),
+          style: const TextStyle(color: Colors.white, fontSize: 17),
+        ),
+        content: Text(
+          t.translate('enableNotificationsPrompt'),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.translate('cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              t.translate('openSettings'),
+              style: const TextStyle(
+                  color: AppTheme.primary, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       ),
     );
+    if (open == true) {
+      await openAppSettings();
+    }
   }
 
   void _showIqamaTimesSheet(BuildContext context) {

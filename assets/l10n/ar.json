@@ -380,6 +380,8 @@
   "batteryOptimizationTitle": "إذا كانت التذكيرات صامتة",
   "batteryOptimizationSubtitle": "افتح dontkillmyapp.com واتبع الخطوات الخاصة بهاتفك",
   "notificationsBlocked": "الإشعارات معطّلة في إعدادات النظام.",
+  "enableNotificationsPrompt": "افتح إعدادات الهاتف وفعّل الإشعارات حتى تصل تذكيرات الصلاة إلى شريط الإشعارات.",
+  "openSettings": "افتح الإعدادات",
   "testNotificationTitle": "اختبار In Salah",
   "testNotificationBody": "إذا رأيت هذا فالتذكيرات تعمل.",
   "testNotificationQueued": "تم إرسال الاختبار. إذا ظهر، فالإشعارات تعمل.",
