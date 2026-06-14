@@ -65,3 +65,10 @@ SECRETS.md
 .roo
 .trae
 .windsurf
+
+# Scratch / generated
+_recolor_tmp/
+devtools_options.yaml
+
+# InsForge & AI agent skills
+.claude

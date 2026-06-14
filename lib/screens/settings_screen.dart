@@ -82,7 +82,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       accentColor: const Color(0xFFE6AEFF),
                       title: t.translate('calculationMethod'),
                       subtitle: _getCalculationMethodName(
-                        provider.settings.calculationMethod, t,
+                        provider.settings.calculationMethod,
+                        t,
                       ),
                       onTap: () =>
                           _showCalculationMethodPicker(context, provider),
@@ -93,7 +94,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSettingsGroup([
                     _buildRow(
                       icon: Icons.verified_user_rounded,
-                      accentColor: (provider.currentUser?.emailVerified ?? false)
+                      accentColor:
+                          (provider.currentUser?.emailVerified ?? false)
                           ? AppTheme.primary
                           : AppTheme.warning,
                       title: t.translate('security'),
@@ -216,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? Image(
                             image: avatarImage,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (_, _, _) =>
                                 _initialsFallback(initials),
                           )
                         : _initialsFallback(initials),
@@ -325,9 +327,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.035),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.06),
-          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Column(children: children),
       ),
@@ -337,10 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.only(left: 64),
-      child: Container(
-        height: 1,
-        color: Colors.white.withValues(alpha: 0.05),
-      ),
+      child: Container(height: 1, color: Colors.white.withValues(alpha: 0.05)),
     );
   }
 
@@ -417,12 +414,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _getLanguageDisplayName(String code, AppLocalizations t) {
     switch (code) {
-      case 'system': return t.translate('systemLanguage');
-      case 'en': return t.translate('english');
-      case 'ru': return t.translate('russian');
-      case 'ar': return t.translate('arabicLang');
-      case 'tg': return t.translate('tajik');
-      default: return t.translate('english');
+      case 'system':
+        return t.translate('systemLanguage');
+      case 'en':
+        return t.translate('english');
+      case 'ru':
+        return t.translate('russian');
+      case 'ar':
+        return t.translate('arabicLang');
+      case 'tg':
+        return t.translate('tajik');
+      default:
+        return t.translate('english');
     }
   }
 
@@ -474,8 +477,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -648,9 +653,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _removeAvatar(BuildContext context) {
     final provider = context.read<AppProvider>();
-    provider.updateSettings(
-      provider.settings.copyWith(avatarPath: ''),
-    );
+    provider.updateSettings(provider.settings.copyWith(avatarPath: ''));
   }
 
   void _showAvatarActions(BuildContext context, AppProvider provider) {
@@ -739,7 +742,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showEditProfileModal(BuildContext context, AppProvider provider) {
     final t = AppLocalizations.of(context);
     final nameController = TextEditingController(
-      text: provider.settings.displayName ?? _deriveDisplayName(context, provider),
+      text:
+          provider.settings.displayName ??
+          _deriveDisplayName(context, provider),
     );
     Gender currentGender = provider.settings.gender ?? Gender.male;
     DateTime? currentDOB = provider.settings.dateOfBirth;
@@ -749,15 +754,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: StatefulBuilder(
           builder: (context, setModalState) => Container(
             decoration: BoxDecoration(
               color: AppTheme.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
@@ -800,8 +804,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildFieldShell(
                   child: Row(
                     children: [
-                      const Icon(Icons.person_outline_rounded,
-                          size: 16, color: AppTheme.primary),
+                      const Icon(
+                        Icons.person_outline_rounded,
+                        size: 16,
+                        color: AppTheme.primary,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
@@ -848,8 +855,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         label: t.translate('female'),
                         icon: Icons.woman_rounded,
                         isSelected: currentGender == Gender.female,
-                        onTap: () => setModalState(
-                            () => currentGender = Gender.female),
+                        onTap: () =>
+                            setModalState(() => currentGender = Gender.female),
                       ),
                     ),
                   ],
@@ -884,8 +891,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: _buildFieldShell(
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today_rounded,
-                            size: 15, color: AppTheme.primary),
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          size: 15,
+                          color: AppTheme.primary,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           currentDOB != null
@@ -1154,9 +1164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: AppTheme.textMuted,
                     size: 18,
                   ),
-                  onTap: () => _openExternalUrl(
-                    'https://dontkillmyapp.com/',
-                  ),
+                  onTap: () => _openExternalUrl('https://dontkillmyapp.com/'),
                   showDivider: false,
                 ),
               ]),
@@ -1187,15 +1195,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: t.translate('testNotificationTitle'),
       body: t.translate('testNotificationBody'),
     );
-    final pending = await provider.pendingNotificationCount();
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          t
-              .translate('testNotificationQueued')
-              .replaceAll('{n}', pending.toString()),
-        ),
+        content: Text(t.translate('testNotificationQueued')),
         backgroundColor: AppTheme.primary,
       ),
     );
@@ -1315,7 +1318,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return List<Widget>.generate(prayers.length, (index) {
       final prayer = prayers[index];
-      final settings = provider.settings.prayerSettings[prayer] ??
+      final settings =
+          provider.settings.prayerSettings[prayer] ??
           const PrayerNotificationSettings();
 
       String soundName = t.translate('standard');
@@ -1495,12 +1499,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     try {
       await InsforgeService.instance.deleteAccount();
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${t.translate('failedToDeleteAccount')}: $e'),
@@ -1518,7 +1522,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String prayer,
   ) {
     final t = AppLocalizations.of(context);
-    final settings = provider.settings.prayerSettings[prayer] ??
+    final settings =
+        provider.settings.prayerSettings[prayer] ??
         const PrayerNotificationSettings();
     final AudioPlayer player = AudioPlayer();
     String? playingValue;
@@ -1543,12 +1548,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (!ctx.mounted) return;
               setSheetState(() => playingValue = value);
               await player.play(AssetSource(assetPath));
-              player.onPlayerComplete.first.then((_) {
-                if (!ctx.mounted) return;
-                if (playingValue == value) {
-                  setSheetState(() => playingValue = null);
-                }
-              }).catchError((_) {});
+              player.onPlayerComplete.first
+                  .then((_) {
+                    if (!ctx.mounted) return;
+                    if (playingValue == value) {
+                      setSheetState(() => playingValue = null);
+                    }
+                  })
+                  .catchError((_) {});
             }
 
             Widget buildOption(
@@ -1593,8 +1600,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     color: isSelected
                         ? AppTheme.primary
                         : AppTheme.textSecondary,
@@ -1608,8 +1614,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       )
                     : null,
                 onTap: () {
-                  final newMap =
-                      Map<String, PrayerNotificationSettings>.from(
+                  final newMap = Map<String, PrayerNotificationSettings>.from(
                     provider.settings.prayerSettings,
                   );
                   newMap[prayer] = PrayerNotificationSettings(
@@ -1726,8 +1731,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       lang.$2,
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: isSelected
+                            ? AppTheme.primary
+                            : AppTheme.textSecondary,
                       ),
                     ),
                     trailing: isSelected
@@ -1823,7 +1832,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                buildOption(t.translate('muslimWorldLeague'), 'muslim_world_league'),
+                buildOption(
+                  t.translate('muslimWorldLeague'),
+                  'muslim_world_league',
+                ),
                 buildOption(t.translate('ummAlQura'), 'umm_al_qura'),
                 buildOption(t.translate('isna'), 'isna'),
                 buildOption(t.translate('egyptian'), 'egyptian'),
@@ -1909,8 +1921,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         if (showDivider)
-          const Divider(
-              color: AppTheme.surfaceBorder, height: 1, indent: 50),
+          const Divider(color: AppTheme.surfaceBorder, height: 1, indent: 50),
       ],
     );
   }
@@ -1962,7 +1973,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---------------- Derivation ----------------
 
   String _deriveDisplayName(BuildContext context, AppProvider provider) {
-    final defaultName = AppLocalizations.of(context).translate('defaultUserName');
+    final defaultName = AppLocalizations.of(
+      context,
+    ).translate('defaultUserName');
     if (provider.settings.displayName != null &&
         provider.settings.displayName!.isNotEmpty) {
       return provider.settings.displayName!;

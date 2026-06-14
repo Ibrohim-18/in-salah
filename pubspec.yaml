@@ -53,6 +53,14 @@ flutter:
     - assets/l10n/
     - assets/audio/
 
+  fonts:
+    - family: DigitalMadina
+      fonts:
+        - asset: assets/fonts/DigitalMadina-NONV1.ttf
+    - family: DigitalKhatt
+      fonts:
+        - asset: assets/fonts/DigitalKhatt-OldMadina.otf
+
 flutter_launcher_icons:
   android: true
   ios: true
