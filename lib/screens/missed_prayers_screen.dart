@@ -1383,15 +1383,9 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.035),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          ),
-          child: Column(
-            children: prayers.map((prayer) {
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: prayers.map((prayer) {
               final rawCompleted = _monthStats[prayer] ?? 0;
               final completed =
                   monthDays > 0 ? math.min(rawCompleted, monthDays) : 0;
@@ -1400,108 +1394,62 @@ class _MissedPrayersScreenState extends State<MissedPrayersScreen> {
                   : 0.0;
               final color = _prayerColors[prayer] ?? AppTheme.primary;
               final name = _localizedPrayerName(prayer, t);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Colored initial chip for quick identification.
-                    Container(
-                      width: 30,
-                      height: 30,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: color.withValues(alpha: 0.16),
-                        border:
-                            Border.all(color: color.withValues(alpha: 0.40)),
-                      ),
-                      child: Text(
-                        name.characters.first,
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: -0.1,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '$completed / $monthDays',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: 0.45),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                '${(pct * 100).round()}%',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: color,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          _BreakdownBar(value: pct, color: color),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              return _BreakdownRow(
+                name: name,
+                initial: name.characters.first,
+                completed: completed,
+                total: monthDays,
+                value: pct,
+                color: color,
               );
             }).toList(),
-          ),
         ),
       ],
     );
   }
 }
 
-/// A rounded, animated stat bar with a subtle gradient fill and accent glow.
-class _BreakdownBar extends StatelessWidget {
+/// A single breakdown entry rendered as a filled "pill": the completion
+/// fraction grows as a tinted background, with the chip, name, count and
+/// percentage laid over it.
+class _BreakdownRow extends StatelessWidget {
+  final String name;
+  final String initial;
+  final int completed;
+  final int total;
   final double value; // 0..1
   final Color color;
 
-  const _BreakdownBar({required this.value, required this.color});
+  const _BreakdownRow({
+    required this.name,
+    required this.initial,
+    required this.completed,
+    required this.total,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 7,
+    return Container(
+      height: 52,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.04),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: ColoredBox(color: Colors.white.withValues(alpha: 0.05)),
-            ),
+            // Progress fill as a tinted, growing background.
             Positioned.fill(
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0, end: value.clamp(0.0, 1.0)),
-                  duration: const Duration(milliseconds: 600),
+                  duration: const Duration(milliseconds: 700),
                   curve: Curves.easeOutCubic,
                   builder: (context, v, _) {
                     return FractionallySizedBox(
@@ -1509,25 +1457,81 @@ class _BreakdownBar extends StatelessWidget {
                       heightFactor: 1,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
                           gradient: LinearGradient(
                             colors: [
-                              color.withValues(alpha: 0.7),
-                              color,
+                              color.withValues(alpha: 0.34),
+                              color.withValues(alpha: 0.14),
                             ],
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: color.withValues(alpha: 0.45),
-                              blurRadius: 6,
-                              spreadRadius: -1,
+                          border: Border(
+                            right: BorderSide(
+                              color: color.withValues(alpha: 0.85),
+                              width: 2,
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     );
                   },
                 ),
+              ),
+            ),
+            // Content over the fill.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(9),
+                      color: color.withValues(alpha: 0.22),
+                      border: Border.all(color: color.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(
+                      initial,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '$completed/$total',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.55),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 44,
+                    child: Text(
+                      '${(value * 100).round()}%',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
