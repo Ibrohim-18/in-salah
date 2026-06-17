@@ -83,6 +83,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   DateTime? _lastNotificationSync;
+  static const _startupStepTimeout = Duration(seconds: 8);
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -296,7 +297,11 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     try {
       WidgetsBinding.instance.addObserver(this);
-      await _notificationInit();
+      try {
+        await _notificationInit().timeout(_startupStepTimeout);
+      } catch (e) {
+        debugPrint('Notification init skipped: $e');
+      }
 
       // Setup Auth Listener
       _currentUser = _initialUser ?? InsforgeService.instance.currentUser;
@@ -402,7 +407,13 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> ensureNotificationPermission() async {
-    final granted = await _notificationRequestPermission();
+    bool granted = false;
+    try {
+      granted = await _notificationRequestPermission();
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('Notification permission failed: $e');
+    }
     if (granted && _settings.isSetupComplete) {
       try {
         await _loadPrayersAndCount(userId: _currentUser?.id);
@@ -411,6 +422,18 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         _error = e.toString();
         debugPrint('Error scheduling notifications after permission: $e');
       }
+    }
+    notifyListeners();
+    return granted;
+  }
+
+  Future<bool> requestNotificationPermissionOnly() async {
+    bool granted = false;
+    try {
+      granted = await _notificationRequestPermission();
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('Notification permission failed: $e');
     }
     notifyListeners();
     return granted;
@@ -425,6 +448,18 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     required String body,
   }) {
     return NotificationService().sendTestNotification(title: title, body: body);
+  }
+
+  Future<bool> areNotificationsEnabled() {
+    return NotificationService().areNotificationsEnabled();
+  }
+
+  Future<bool> isBatteryOptimizationDisabled() {
+    return NotificationService().isBatteryOptimizationDisabled();
+  }
+
+  Future<bool> requestDisableBatteryOptimization() {
+    return NotificationService().requestDisableBatteryOptimization();
   }
 
   Timer? _debounceTimer;
@@ -639,8 +674,10 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     final now = DateTime.now();
     if (year == now.year && month == now.month && _todayPrayers.isNotEmpty) {
-      _todayPrayers =
-          await _withTodayCompletionStatuses(_todayPrayers, userId: userId);
+      _todayPrayers = await _withTodayCompletionStatuses(
+        _todayPrayers,
+        userId: userId,
+      );
     }
     _currentStreak = await _calculateStreak(userId: userId);
     notifyListeners();

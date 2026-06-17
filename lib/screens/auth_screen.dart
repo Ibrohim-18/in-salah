@@ -101,7 +101,16 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       }
     } on InsforgeAuthException catch (e) {
-      setState(() => _error = e.message);
+      final message = e.message;
+      if (_isLogin &&
+          message.toLowerCase().contains('email verification required')) {
+        setState(() {
+          _needsVerification = true;
+          _error = null;
+        });
+      } else {
+        setState(() => _error = message);
+      }
     } on SocketException {
       setState(() => _error = '_no_internet_');
     } on http.ClientException {

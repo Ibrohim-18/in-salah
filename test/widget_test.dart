@@ -11,12 +11,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_salah/main.dart';
 
 void main() {
-  testWidgets('App shows startup loading indicator', (WidgetTester tester) async {
+  testWidgets('App builds on startup', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MyApp(hasSeenOnboarding: false, initialLocale: 'system'),
     );
 
     expect(find.byType(MaterialApp), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 9));
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }

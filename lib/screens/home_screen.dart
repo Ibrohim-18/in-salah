@@ -46,11 +46,43 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadSalawat();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      final provider = context.read<AppProvider>();
+      if (!provider.settings.isSetupComplete) return;
+      final hasEnabledReminders =
+          provider.settings.prayerSettings.values.any((s) => s.isEnabled);
+      if (!hasEnabledReminders) return;
+
       final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('notification_permission_asked') ?? false) return;
+      final alreadyAsked =
+          prefs.getBool('notification_permission_asked') ?? false;
+      var pendingCount = 0;
+      try {
+        pendingCount = await provider
+            .pendingNotificationCount()
+            .timeout(const Duration(seconds: 3));
+      } catch (_) {
+        pendingCount = 0;
+      }
+      if (alreadyAsked && pendingCount > 0) return;
+
       if (!mounted) return;
-      await context.read<AppProvider>().ensureNotificationPermission();
-      await prefs.setBool('notification_permission_asked', true);
+      final granted = await provider.ensureNotificationPermission();
+      if (granted) {
+        await prefs.setBool('notification_permission_asked', true);
+
+        // On aggressive-OEM devices the system freezes the app and drops
+        // scheduled adhan reminders unless it's exempt from battery
+        // optimization. Ask once after notifications are granted.
+        final batteryAsked =
+            prefs.getBool('battery_optimization_asked') ?? false;
+        if (!batteryAsked) {
+          final exempt = await provider.isBatteryOptimizationDisabled();
+          if (!exempt) {
+            await provider.requestDisableBatteryOptimization();
+          }
+          await prefs.setBool('battery_optimization_asked', true);
+        }
+      }
     });
   }
 
@@ -1148,7 +1180,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
+                    builder: (context) =>
+                        const SettingsScreen(openProfileOnStart: true),
                   ),
                 );
               },
@@ -1225,4 +1258,3 @@ class _FocusBorderPainter extends CustomPainter {
   bool shouldRepaint(_FocusBorderPainter old) =>
       old.progress != progress || old.color != color;
 }
-

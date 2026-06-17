@@ -17,6 +17,7 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		AA01000000000000000000A1 /* adhan_makkah.aiff in Resources */ = {isa = PBXBuildFile; fileRef = AA02000000000000000000B1 /* adhan_makkah.aiff */; };
 		AA01000000000000000000A2 /* adhan_madina.aiff in Resources */ = {isa = PBXBuildFile; fileRef = AA02000000000000000000B2 /* adhan_madina.aiff */; };
+		AA01000000000000000000A3 /* iqama_chime.aiff in Resources */ = {isa = PBXBuildFile; fileRef = AA02000000000000000000B3 /* iqama_chime.aiff */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +62,7 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA02000000000000000000B1 /* adhan_makkah.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = adhan_makkah.aiff; sourceTree = "<group>"; };
 		AA02000000000000000000B2 /* adhan_madina.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = adhan_madina.aiff; sourceTree = "<group>"; };
+		AA02000000000000000000B3 /* iqama_chime.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = iqama_chime.aiff; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +128,7 @@
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				AA02000000000000000000B1 /* adhan_makkah.aiff */,
 				AA02000000000000000000B2 /* adhan_madina.aiff */,
+				AA02000000000000000000B3 /* iqama_chime.aiff */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -227,6 +230,7 @@
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
 				AA01000000000000000000A1 /* adhan_makkah.aiff in Resources */,
 				AA01000000000000000000A2 /* adhan_madina.aiff in Resources */,
+				AA01000000000000000000A3 /* iqama_chime.aiff in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

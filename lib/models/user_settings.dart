@@ -3,18 +3,37 @@ enum Gender { male, female }
 class PrayerNotificationSettings {
   final bool isEnabled;
   final String sound;
+  final String iqamaSound;
 
   const PrayerNotificationSettings({
     this.isEnabled = true,
     this.sound = 'default',
+    this.iqamaSound = 'iqama_chime',
   });
 
-  Map<String, dynamic> toJson() => {'isEnabled': isEnabled, 'sound': sound};
+  PrayerNotificationSettings copyWith({
+    bool? isEnabled,
+    String? sound,
+    String? iqamaSound,
+  }) {
+    return PrayerNotificationSettings(
+      isEnabled: isEnabled ?? this.isEnabled,
+      sound: sound ?? this.sound,
+      iqamaSound: iqamaSound ?? this.iqamaSound,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'isEnabled': isEnabled,
+    'sound': sound,
+    'iqamaSound': iqamaSound,
+  };
 
   factory PrayerNotificationSettings.fromJson(Map<String, dynamic> json) {
     return PrayerNotificationSettings(
       isEnabled: json['isEnabled'] ?? true,
       sound: json['sound'] ?? 'default',
+      iqamaSound: json['iqamaSound'] ?? json['iqama_sound'] ?? 'iqama_chime',
     );
   }
 }
@@ -76,9 +95,14 @@ class UserSettings {
           json['calculationMethod'] ??
           'muslim_world_league',
       madhab: json['madhab'] ?? 'shafi',
-      interfaceScale: ((json['interface_scale'] ?? json['interfaceScale'] ?? json['uiScale'] ?? 0.92) as num)
-          .toDouble()
-          .clamp(0.70, 1.20),
+      interfaceScale:
+          ((json['interface_scale'] ??
+                      json['interfaceScale'] ??
+                      json['uiScale'] ??
+                      0.92)
+                  as num)
+              .toDouble()
+              .clamp(0.70, 1.20),
     );
   }
 
@@ -173,7 +197,10 @@ class UserSettings {
             },
       calculationMethod: json['calculationMethod'] ?? 'muslim_world_league',
       madhab: json['madhab'] ?? 'shafi',
-      interfaceScale: ((json['interfaceScale'] ?? json['uiScale'] ?? 0.92) as num).toDouble().clamp(0.70, 1.20),
+      interfaceScale:
+          ((json['interfaceScale'] ?? json['uiScale'] ?? 0.92) as num)
+              .toDouble()
+              .clamp(0.70, 1.20),
       locale: json['locale'] ?? 'system',
     );
   }

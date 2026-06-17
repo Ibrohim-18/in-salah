@@ -217,7 +217,6 @@ class _MyAppState extends State<MyApp> {
                 : !_hasSeenOnboarding
                     ? OnboardingScreen(
                         onComplete: () async {
-                          await provider.ensureNotificationPermission();
                           if (!mounted) return;
                           setState(() => _hasSeenOnboarding = true);
                         },

@@ -2,6 +2,7 @@ import 'dart:io';
 import '../services/insforge_service.dart';
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,13 +18,16 @@ import '../widgets/liquid_glass_container.dart';
 import '../utils/theme.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool openProfileOnStart;
+
+  const SettingsScreen({super.key, this.openProfileOnStart = false});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const int _maxIqamaMinutes = 180;
   String? _appVersion;
 
   @override
@@ -33,6 +37,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() => _appVersion = info.version);
     });
+    if (widget.openProfileOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showEditProfileModal(context, context.read<AppProvider>());
+      });
+    }
   }
 
   @override
@@ -1154,18 +1164,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     size: 18,
                   ),
                   onTap: () => _runNotificationTest(context, provider, t),
-                  showDivider: true,
                 ),
                 _buildTile(
-                  icon: Icons.battery_alert_rounded,
-                  title: t.translate('batteryOptimizationTitle'),
+                  icon: Icons.battery_saver_rounded,
+                  title: t.translate('batteryOptimization'),
                   subtitle: t.translate('batteryOptimizationSubtitle'),
                   trailing: const Icon(
-                    Icons.open_in_new_rounded,
+                    Icons.chevron_right_rounded,
                     color: AppTheme.textMuted,
                     size: 18,
                   ),
-                  onTap: () => _openExternalUrl('https://dontkillmyapp.com/'),
+                  onTap: () => _runBatteryOptimization(context, provider, t),
                   showDivider: false,
                 ),
               ]),
@@ -1181,20 +1190,119 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AppProvider provider,
     AppLocalizations t,
   ) async {
-    final granted = await provider.ensureNotificationPermission();
+    try {
+      final granted = await provider.requestNotificationPermissionOnly();
+      if (!context.mounted) return;
+      if (!granted) {
+        // System notifications are off; they can only be re-enabled from the OS
+        // settings. Offer to jump there instead of dead-ending on an in-app
+        // message — that's the only way to get reminders into the shade.
+        await _promptEnableNotifications(context, t);
+        return;
+      }
+      // The test fires straight to the system notification shade.
+      await provider
+          .sendTestNotification(
+            title: t.translate('testNotificationTitle'),
+            body: t.translate('testNotificationBody'),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (!context.mounted) return;
+      _showSettingsSnack(
+        context,
+        t.translate('testNotificationQueued'),
+        backgroundColor: AppTheme.primary,
+      );
+
+      // Scheduled reminders also need a battery-optimization exemption on
+      // aggressive-OEM devices; nudge the user if it's still missing.
+      final exempt = await provider.isBatteryOptimizationDisabled();
+      if (!context.mounted || exempt) return;
+      await _promptBatteryOptimization(context, provider, t);
+    } catch (e) {
+      if (!context.mounted) return;
+      _showSettingsSnack(
+        context,
+        '${t.translate('unexpectedError')}: $e',
+        backgroundColor: AppTheme.danger,
+      );
+    }
+  }
+
+  Future<void> _runBatteryOptimization(
+    BuildContext context,
+    AppProvider provider,
+    AppLocalizations t,
+  ) async {
+    final exempt = await provider.isBatteryOptimizationDisabled();
     if (!context.mounted) return;
-    if (!granted) {
-      // System notifications are off; they can only be re-enabled from the OS
-      // settings. Offer to jump there instead of dead-ending on an in-app
-      // message — that's the only way to get reminders into the shade.
-      await _promptEnableNotifications(context, t);
+    if (exempt) {
+      _showSettingsSnack(
+        context,
+        t.translate('batteryOptimizationAlreadyDone'),
+        backgroundColor: AppTheme.primary,
+      );
       return;
     }
-    // The test fires straight to the system notification shade.
-    await provider.sendTestNotification(
-      title: t.translate('testNotificationTitle'),
-      body: t.translate('testNotificationBody'),
+    await _promptBatteryOptimization(context, provider, t);
+  }
+
+  Future<void> _promptBatteryOptimization(
+    BuildContext context,
+    AppProvider provider,
+    AppLocalizations t,
+  ) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceRaised,
+        title: Text(
+          t.translate('batteryOptimization'),
+          style: const TextStyle(color: Colors.white, fontSize: 17),
+        ),
+        content: Text(
+          t.translate('batteryOptimizationPrompt'),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.translate('cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              t.translate('batteryOptimizationOk'),
+              style: const TextStyle(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+    if (proceed == true) {
+      await provider.requestDisableBatteryOptimization();
+    }
+  }
+
+  void _showSettingsSnack(
+    BuildContext context,
+    String message, {
+    required Color backgroundColor,
+  }) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: backgroundColor,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
   }
 
   Future<void> _promptEnableNotifications(
@@ -1223,7 +1331,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Text(
               t.translate('openSettings'),
               style: const TextStyle(
-                  color: AppTheme.primary, fontWeight: FontWeight.w700),
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -1352,19 +1462,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           provider.settings.prayerSettings[prayer] ??
           const PrayerNotificationSettings();
 
-      String soundName = t.translate('standard');
-      if (settings.sound == 'adhan_makkah') {
-        soundName = t.translate('adhanMakkah');
-      }
-      if (settings.sound == 'adhan_madina') {
-        soundName = t.translate('adhanMadina');
-      }
+      final adhanSoundName = _adhanSoundName(settings, t);
+      final iqamaSoundName = _iqamaSoundName(settings, t);
 
       return _buildTile(
         icon: Icons.notifications_rounded,
         title: _prayerDisplayName(prayer, t),
         subtitle: settings.isEnabled
-            ? '${t.translate('sound')}: $soundName'
+            ? '${t.translate('adhan')}: $adhanSoundName | ${t.translate('iqama')}: $iqamaSoundName'
             : t.translate('muted'),
         trailing: Switch.adaptive(
           value: settings.isEnabled,
@@ -1372,10 +1477,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final newMap = Map<String, PrayerNotificationSettings>.from(
               provider.settings.prayerSettings,
             );
-            newMap[prayer] = PrayerNotificationSettings(
-              isEnabled: value,
-              sound: settings.sound,
-            );
+            newMap[prayer] = settings.copyWith(isEnabled: value);
             provider.updateSettings(
               provider.settings.copyWith(prayerSettings: newMap),
             );
@@ -1384,11 +1486,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
           inactiveTrackColor: AppTheme.surfaceLight,
         ),
         onTap: settings.isEnabled
-            ? () => _showAdhanPicker(context, provider, prayer)
+            ? () => _showReminderSoundPicker(context, provider, prayer)
             : null,
         showDivider: index != prayers.length - 1,
       );
     });
+  }
+
+  String _adhanSoundName(
+    PrayerNotificationSettings settings,
+    AppLocalizations t,
+  ) {
+    return _notificationSoundName(settings.sound, t);
+  }
+
+  String _iqamaSoundName(
+    PrayerNotificationSettings settings,
+    AppLocalizations t,
+  ) {
+    return _notificationSoundName(settings.iqamaSound, t, isIqama: true);
+  }
+
+  String _notificationSoundName(
+    String sound,
+    AppLocalizations t, {
+    bool isIqama = false,
+  }) {
+    return switch (sound) {
+      'silent' => t.translate('muted'),
+      'adhan_makkah' => t.translate('adhanMakkah'),
+      'adhan_madina' => t.translate('adhanMadina'),
+      'iqama_chime' => t.translate('iqamaChime'),
+      _ => isIqama ? t.translate('iqamaChime') : t.translate('standard'),
+    };
   }
 
   List<Widget> _buildIqamaTiles(AppProvider provider) {
@@ -1397,55 +1527,230 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return List<Widget>.generate(prayers.length, (index) {
       final prayer = prayers[index];
+      final value = (provider.settings.iqamaTimes[prayer] ?? 0)
+          .clamp(0, _maxIqamaMinutes)
+          .toInt();
 
       return _buildTile(
         icon: Icons.av_timer_rounded,
         title: _prayerDisplayName(prayer, t),
-        trailing: Container(
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceLight,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _iqamaBtn(Icons.remove_rounded, () {
-                final updatedTimes = Map<String, int>.from(
-                  provider.settings.iqamaTimes,
-                );
-                updatedTimes[prayer] = (updatedTimes[prayer]! - 1).clamp(0, 60);
-                provider.updateSettings(
-                  provider.settings.copyWith(iqamaTimes: updatedTimes),
-                );
-              }),
-              Container(
-                width: 30,
-                alignment: Alignment.center,
-                child: Text(
-                  '${provider.settings.iqamaTimes[prayer]}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-              _iqamaBtn(Icons.add_rounded, () {
-                final updatedTimes = Map<String, int>.from(
-                  provider.settings.iqamaTimes,
-                );
-                updatedTimes[prayer] = (updatedTimes[prayer]! + 1).clamp(0, 60);
-                provider.updateSettings(
-                  provider.settings.copyWith(iqamaTimes: updatedTimes),
-                );
-              }),
-            ],
-          ),
-        ),
+        subtitle: t.translate('minutesAfterAdhanSection'),
+        trailing: _buildIqamaValuePill(value, t),
+        onTap: () => _showIqamaPicker(context, provider, prayer),
         showDivider: index != prayers.length - 1,
       );
     });
+  }
+
+  void _setIqamaTime(AppProvider provider, String prayer, int value) {
+    final updatedTimes = Map<String, int>.from(provider.settings.iqamaTimes);
+    updatedTimes[prayer] = value.clamp(0, _maxIqamaMinutes).toInt();
+    provider.updateSettings(
+      provider.settings.copyWith(iqamaTimes: updatedTimes),
+    );
+  }
+
+  Widget _buildIqamaValuePill(int value, AppLocalizations t) {
+    return Semantics(
+      button: true,
+      child: Container(
+        height: 36,
+        constraints: const BoxConstraints(minWidth: 78),
+        padding: const EdgeInsets.only(left: 14, right: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _formatIqamaMinutes(value, t),
+              textScaler: TextScaler.noScaling,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.expand_more_rounded,
+              size: 18,
+              color: AppTheme.textSecondary.withValues(alpha: 0.85),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatIqamaMinutes(int value, AppLocalizations t) {
+    return '$value ${_minutesShortLabel(t)}';
+  }
+
+  String _minutesShortLabel(AppLocalizations t) {
+    final translated = t.translate('minutesShort').trim();
+    if (translated.isNotEmpty && !translated.contains('minutesShort')) {
+      return translated;
+    }
+
+    return switch (t.locale.languageCode) {
+      'ru' => 'мин',
+      'tg' => 'дақ',
+      'ar' => 'د',
+      _ => 'min',
+    };
+  }
+
+  void _showIqamaPicker(
+    BuildContext context,
+    AppProvider provider,
+    String prayer,
+  ) {
+    final t = AppLocalizations.of(context);
+    final initialValue = (provider.settings.iqamaTimes[prayer] ?? 0)
+        .clamp(0, _maxIqamaMinutes)
+        .toInt();
+    var selectedValue = initialValue;
+    final scrollController = FixedExtentScrollController(
+      initialItem: initialValue,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppTheme.surfaceBorder),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceBorder,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(
+                            t.translate('cancel'),
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            _prayerDisplayName(prayer, t),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            _setIqamaTime(provider, prayer, selectedValue);
+                            Navigator.pop(ctx);
+                          },
+                          child: Text(
+                            t.translate('done'),
+                            style: const TextStyle(
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: AppTheme.surfaceBorder, height: 1),
+                  SizedBox(
+                    height: 238,
+                    child: CupertinoTheme(
+                      data: const CupertinoThemeData(
+                        brightness: Brightness.dark,
+                        textTheme: CupertinoTextThemeData(
+                          pickerTextStyle: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      child: CupertinoPicker(
+                        scrollController: scrollController,
+                        itemExtent: 44,
+                        magnification: 1.08,
+                        squeeze: 1.12,
+                        useMagnifier: true,
+                        selectionOverlay: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 46),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.12),
+                            ),
+                          ),
+                        ),
+                        onSelectedItemChanged: (value) {
+                          selectedValue = value;
+                        },
+                        children: List<Widget>.generate(
+                          _maxIqamaMinutes + 1,
+                          (minutes) => Center(
+                            child: Text(
+                              _formatIqamaMinutes(minutes, t),
+                              textScaler: TextScaler.noScaling,
+                              style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ).whenComplete(scrollController.dispose);
   }
 
   // ---------------- Confirm dialogs ----------------
@@ -1546,13 +1851,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ---------------- Pickers ----------------
 
-  void _showAdhanPicker(
+  Widget _buildPickerSectionLabel(String label) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.55),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showReminderSoundPicker(
     BuildContext context,
     AppProvider provider,
     String prayer,
   ) {
     final t = AppLocalizations.of(context);
-    final settings =
+    var currentSettings =
         provider.settings.prayerSettings[prayer] ??
         const PrayerNotificationSettings();
     final AudioPlayer player = AudioPlayer();
@@ -1591,9 +1914,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Widget buildOption(
               String label,
               String value, {
+              required String selectedValue,
+              required ValueChanged<String> onSelected,
               String? assetPath,
             }) {
-              final isSelected = settings.sound == value;
+              final isSelected = selectedValue == value;
               final isPlaying = playingValue == value;
               return ListTile(
                 shape: RoundedRectangleBorder(
@@ -1644,19 +1969,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       )
                     : null,
                 onTap: () {
-                  final newMap = Map<String, PrayerNotificationSettings>.from(
-                    provider.settings.prayerSettings,
-                  );
-                  newMap[prayer] = PrayerNotificationSettings(
-                    isEnabled: settings.isEnabled,
-                    sound: value,
-                  );
-                  provider.updateSettings(
-                    provider.settings.copyWith(prayerSettings: newMap),
-                  );
-                  Navigator.maybePop(ctx);
+                  onSelected(value);
                 },
               );
+            }
+
+            void updateSettings(PrayerNotificationSettings nextSettings) {
+              final newMap = Map<String, PrayerNotificationSettings>.from(
+                provider.settings.prayerSettings,
+              );
+              newMap[prayer] = nextSettings;
+              provider.updateSettings(
+                provider.settings.copyWith(prayerSettings: newMap),
+              );
+              setSheetState(() => currentSettings = nextSettings);
+            }
+
+            void setAdhanSound(String value) {
+              updateSettings(currentSettings.copyWith(sound: value));
+            }
+
+            void setIqamaSound(String value) {
+              updateSettings(currentSettings.copyWith(iqamaSound: value));
             }
 
             return Padding(
@@ -1683,16 +2017,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    buildOption(t.translate('standardNotification'), 'default'),
+                    _buildPickerSectionLabel(t.translate('adhan')),
+                    buildOption(
+                      t.translate('standardNotification'),
+                      'default',
+                      selectedValue: currentSettings.sound,
+                      onSelected: setAdhanSound,
+                    ),
+                    buildOption(
+                      t.translate('muted'),
+                      'silent',
+                      selectedValue: currentSettings.sound,
+                      onSelected: setAdhanSound,
+                    ),
                     buildOption(
                       t.translate('adhanMakkahFull'),
                       'adhan_makkah',
+                      selectedValue: currentSettings.sound,
+                      onSelected: setAdhanSound,
                       assetPath: 'audio/adhan_makkah.mp3',
                     ),
                     buildOption(
                       t.translate('adhanMadinaFull'),
                       'adhan_madina',
+                      selectedValue: currentSettings.sound,
+                      onSelected: setAdhanSound,
                       assetPath: 'audio/adhan_madina.mp3',
+                    ),
+                    const Divider(color: AppTheme.surfaceBorder, height: 22),
+                    _buildPickerSectionLabel(t.translate('iqama')),
+                    buildOption(
+                      t.translate('iqamaChime'),
+                      'iqama_chime',
+                      selectedValue: currentSettings.iqamaSound,
+                      onSelected: setIqamaSound,
+                      assetPath: 'audio/iqama_chime.wav',
+                    ),
+                    buildOption(
+                      t.translate('muted'),
+                      'silent',
+                      selectedValue: currentSettings.iqamaSound,
+                      onSelected: setIqamaSound,
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -1981,21 +2346,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ...children,
         ],
-      ),
-    );
-  }
-
-  Widget _iqamaBtn(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppTheme.surfaceRaised,
-          border: Border.all(color: AppTheme.surfaceBorder),
-        ),
-        child: Icon(icon, color: AppTheme.primary, size: 14),
       ),
     );
   }

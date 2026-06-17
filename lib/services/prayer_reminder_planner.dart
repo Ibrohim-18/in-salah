@@ -37,6 +37,9 @@ class PrayerReminderPlanner {
     final titleTpl = tr['notificationPrayerTitle'] ?? '{prayer} Prayer';
     final bodyTpl =
         tr['notificationPrayerBody'] ?? 'It is time for {prayer} prayer.';
+    final iqamaTitleTpl = tr['notificationIqamaTitle'] ?? '{prayer} Iqama';
+    final iqamaBodyTpl =
+        tr['notificationIqamaBody'] ?? 'Iqama time for {prayer} has started.';
 
     // Resolve the device position once and reuse it for every day instead of
     // hitting geolocation 30 times. Falls back to cached coordinates inside
@@ -58,7 +61,7 @@ class PrayerReminderPlanner {
 
       for (final prayer in prayers) {
         final prayerSettings = settings.prayerSettings[prayer.name];
-        if (!(prayerSettings?.isEnabled ?? true) || !prayer.time.isAfter(now)) {
+        if (!(prayerSettings?.isEnabled ?? true)) {
           continue;
         }
 
@@ -67,16 +70,35 @@ class PrayerReminderPlanner {
             (targetDate.month * 100) +
             targetDate.day;
         final localizedName = _localizedPrayerName(prayer.name, tr);
-        requests.add(
-          PrayerNotificationRequest(
-            id: (dateKey * 10) + (_prayerOrder[prayer.name] ?? 0),
-            prayerName: prayer.name,
-            title: titleTpl.replaceAll('{prayer}', localizedName),
-            body: bodyTpl.replaceAll('{prayer}', localizedName),
-            dateTime: prayer.time,
-            sound: prayerSettings?.sound ?? 'default',
-          ),
-        );
+        final prayerOrder = _prayerOrder[prayer.name] ?? 0;
+        final idBase = (dateKey * 100) + (prayerOrder * 10);
+
+        if (prayer.time.isAfter(now)) {
+          requests.add(
+            PrayerNotificationRequest(
+              id: idBase + 1,
+              prayerName: prayer.name,
+              title: titleTpl.replaceAll('{prayer}', localizedName),
+              body: bodyTpl.replaceAll('{prayer}', localizedName),
+              dateTime: prayer.time,
+              sound: prayerSettings?.sound ?? 'default',
+            ),
+          );
+        }
+
+        if (prayer.iqamaTime.isAfter(now) &&
+            prayer.iqamaTime.isAfter(prayer.time)) {
+          requests.add(
+            PrayerNotificationRequest(
+              id: idBase + 2,
+              prayerName: prayer.name,
+              title: iqamaTitleTpl.replaceAll('{prayer}', localizedName),
+              body: iqamaBodyTpl.replaceAll('{prayer}', localizedName),
+              dateTime: prayer.iqamaTime,
+              sound: prayerSettings?.iqamaSound ?? 'iqama_chime',
+            ),
+          );
+        }
       }
     }
 

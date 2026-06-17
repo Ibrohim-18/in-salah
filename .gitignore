@@ -58,6 +58,7 @@ SECRETS.md
 .claude/*
 !.claude/skills/
 .cline
+.codex
 .github/copilot*
 .kilocode
 .qoder

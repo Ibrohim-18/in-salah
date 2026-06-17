@@ -9,6 +9,10 @@
          feature, so exact adhan notifications fire on time without the user
          having to grant SCHEDULE_EXACT_ALARM by hand. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Lets the user exempt the app from battery optimization so aggressive
+         OEM power management (Xiaomi, Huawei, Oppo, Samsung) doesn't freeze
+         the app and drop scheduled adhan reminders. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <application
