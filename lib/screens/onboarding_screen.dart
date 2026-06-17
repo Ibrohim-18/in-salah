@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
+import '../providers/app_provider.dart';
 import '../utils/theme.dart';
 import '../widgets/liquid_background.dart';
 
@@ -40,9 +42,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
   ];
 
+  bool _completing = false;
+
   Future<void> _complete() async {
+    if (_completing) return;
+    _completing = true;
+
+    // Ask for the notification permission right as onboarding finishes — a
+    // natural, in-context moment, the way well-behaved apps do it. The
+    // Android 13+ system dialog appears now, so the user never has to dig
+    // through phone settings to start receiving adhan reminders.
+    final provider = context.read<AppProvider>();
+    try {
+      await provider.requestNotificationPermissionOnly();
+    } catch (_) {
+      // Permission flow failed; carry on so onboarding can't dead-end here.
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('hasSeenOnboarding', true);
+    await prefs.setBool('notification_permission_asked', true);
     widget.onComplete();
   }
 
