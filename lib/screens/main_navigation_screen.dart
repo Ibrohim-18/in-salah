@@ -24,28 +24,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   static const List<_NavDestination> _destinations = [
     _NavDestination(
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard_rounded,
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
       labelKey: 'home',
     ),
     _NavDestination(
-      icon: Icons.touch_app_outlined,
-      selectedIcon: Icons.touch_app_rounded,
+      icon: Icons.spa_outlined,
+      selectedIcon: Icons.spa_rounded,
       labelKey: 'tasbeeh',
     ),
     _NavDestination(
-      icon: Icons.menu_book_outlined,
-      selectedIcon: Icons.menu_book_rounded,
+      icon: Icons.auto_stories_outlined,
+      selectedIcon: Icons.auto_stories_rounded,
       labelKey: 'dua',
     ),
     _NavDestination(
-      icon: Icons.insert_chart_outlined_rounded,
-      selectedIcon: Icons.insert_chart_rounded,
+      icon: Icons.bar_chart_outlined,
+      selectedIcon: Icons.bar_chart_rounded,
       labelKey: 'analytics',
     ),
     _NavDestination(
-      icon: Icons.account_circle_outlined,
-      selectedIcon: Icons.account_circle_rounded,
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
       labelKey: 'profile',
     ),
   ];
@@ -98,14 +98,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(26),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(26),
                 color: Colors.white.withValues(alpha: 0.02),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.20),
@@ -127,10 +127,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     right: 0,
                     child: IgnorePointer(
                       child: Container(
-                        height: 24,
+                        height: 22,
                         decoration: BoxDecoration(
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(28),
+                            top: Radius.circular(26),
                           ),
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -165,7 +165,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: List.generate(_destinations.length, (index) {
                         final destination = _destinations[index];
@@ -332,30 +332,57 @@ class _NavBarItemState extends State<_NavBarItem> {
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
       child: AnimatedScale(
-        scale: _pressed ? 0.86 : 1.0,
-        duration: const Duration(milliseconds: 140),
+        scale: _pressed ? 0.84 : 1.0,
+        duration: const Duration(milliseconds: 130),
         curve: Curves.easeOut,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+              // Icon with a soft, blurred glow that blooms in when active.
+              SizedBox(
+                width: 26,
+                height: 26,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      left: -13,
+                      right: -13,
+                      top: -13,
+                      bottom: -13,
+                      child: IgnorePointer(
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOut,
+                          opacity: widget.isSelected ? 1 : 0,
+                          child: AnimatedScale(
+                            duration: const Duration(milliseconds: 340),
+                            curve: Curves.easeOutBack,
+                            scale: widget.isSelected ? 1 : 0.45,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    AppTheme.primary.withValues(alpha: 0.60),
+                                    AppTheme.primary.withValues(alpha: 0.22),
+                                    AppTheme.primary.withValues(alpha: 0.0),
+                                  ],
+                                  stops: const [0.0, 0.45, 1.0],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Center(child: widget.icon),
+                  ],
                 ),
-                decoration: BoxDecoration(
-                  color: widget.isSelected
-                      ? AppTheme.primary.withValues(alpha: 0.15)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: widget.icon,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
