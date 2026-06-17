@@ -531,32 +531,32 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         : (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0);
     final playingAyah =
         hasTrack ? _ayahs[_currentIndex!].numberInSurah : null;
+    final theme = _theme;
+    final glassTint = theme.isDark
+        ? Colors.white.withValues(alpha: 0.03)
+        : Colors.black.withValues(alpha: 0.03);
+    final glassBorder = theme.isDark
+        ? Colors.white.withValues(alpha: 0.20)
+        : Colors.black.withValues(alpha: 0.12);
+    final barText = theme.text;
+    final barMuted = theme.muted;
+    final trackColor = theme.isDark
+        ? Colors.white.withValues(alpha: 0.07)
+        : Colors.black.withValues(alpha: 0.08);
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
           decoration: BoxDecoration(
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(28)),
-            color: AppTheme.surface.withValues(alpha: 0.92),
+            color: glassTint,
             border: Border(
-              top: BorderSide(color: AppTheme.primary.withValues(alpha: 0.18)),
+              top: BorderSide(color: glassBorder),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 24,
-                offset: const Offset(0, -8),
-              ),
-              BoxShadow(
-                color: AppTheme.primary.withValues(alpha: 0.08),
-                blurRadius: 18,
-                offset: const Offset(0, -6),
-              ),
-            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -571,7 +571,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
-                color: Colors.white.withValues(alpha: 0.18),
+                color: barMuted.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -582,7 +582,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 _formatDuration(_position),
                 style: AppTheme.numericText(
                   size: 10,
-                  color: hasTrack ? Colors.white : AppTheme.textMuted,
+                  color: hasTrack ? barText : barMuted,
                   weight: FontWeight.w700,
                   letterSpacing: 0,
                 ),
@@ -612,7 +612,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                             height: 4,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(999),
-                              color: Colors.white.withValues(alpha: 0.07),
+                              color: trackColor,
                             ),
                           ),
                           FractionallySizedBox(
@@ -669,7 +669,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 _formatDuration(_duration),
                 style: AppTheme.numericText(
                   size: 10,
-                  color: AppTheme.textMuted,
+                  color: barMuted,
                   weight: FontWeight.w600,
                   letterSpacing: 0,
                 ),
@@ -690,10 +690,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         playingAyah != null
                             ? '${t.translate('reciter')} · ${widget.surah.number}:$playingAyah'
                             : t.translate('reciter'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.textMuted,
+                          color: barMuted,
                           letterSpacing: 0.6,
                         ),
                       ),
@@ -702,10 +702,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         reciterName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: barText,
                         ),
                       ),
                     ],
@@ -716,6 +716,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 icon: Icons.skip_previous_rounded,
                 enabled: hasTrack && _currentIndex! > 0,
                 onTap: () => _playAt(_currentIndex! - 1),
+                color: barText,
               ),
               const SizedBox(width: 8),
               GestureDetector(
@@ -746,6 +747,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 icon: Icons.skip_next_rounded,
                 enabled: hasTrack && _currentIndex! < _ayahs.length - 1,
                 onTap: () => _playAt(_currentIndex! + 1),
+                color: barText,
               ),
               const SizedBox(width: 10),
               GestureDetector(
@@ -755,9 +757,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color: AppTheme.surfaceRaised,
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    color: glassTint,
+                    border: Border.all(color: glassBorder),
                   ),
                   child: const Icon(Icons.graphic_eq_rounded,
                       color: AppTheme.primary, size: 18),
@@ -776,6 +777,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     required IconData icon,
     required bool enabled,
     required VoidCallback onTap,
+    required Color color,
   }) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
@@ -783,8 +785,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         icon,
         size: 24,
         color: enabled
-            ? Colors.white.withValues(alpha: 0.85)
-            : Colors.white.withValues(alpha: 0.22),
+            ? color.withValues(alpha: 0.9)
+            : color.withValues(alpha: 0.28),
       ),
     );
   }
