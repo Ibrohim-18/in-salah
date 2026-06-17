@@ -98,24 +98,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
+                borderRadius: BorderRadius.circular(28),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppTheme.surface.withValues(alpha: 0.42),
-                    AppTheme.surface.withValues(alpha: 0.60),
+                    AppTheme.surface.withValues(alpha: 0.28),
+                    AppTheme.surface.withValues(alpha: 0.44),
                   ],
                 ),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
+                  color: Colors.white.withValues(alpha: 0.14),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -134,10 +134,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     right: 0,
                     child: IgnorePointer(
                       child: Container(
-                        height: 28,
+                        height: 24,
                         decoration: BoxDecoration(
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(32),
+                            top: Radius.circular(28),
                           ),
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -172,7 +172,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 5),
                     child: Row(
                       children: List.generate(_destinations.length, (index) {
                         final destination = _destinations[index];
@@ -221,7 +221,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Icon(
               isSelected ? destination.selectedIcon : destination.icon,
               color: color,
-              size: 24,
+              size: 22,
             ),
         onTap: () => setState(() => _currentIndex = index),
       ),
@@ -255,19 +255,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       return Icon(
         isSelected ? destination.selectedIcon : destination.icon,
         color: color,
-        size: 24,
+        size: 22,
       );
     }
 
     final fallback = Icon(
       isSelected ? destination.selectedIcon : destination.icon,
       color: color,
-      size: 24,
+      size: 22,
     );
 
     return Container(
-      width: 24,
-      height: 24,
+      width: 22,
+      height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppTheme.surfaceRaised,
@@ -351,18 +351,18 @@ class _NavBarItemState extends State<_NavBarItem> {
                 duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutCubic,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 5,
+                  horizontal: 12,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
                   color: widget.isSelected
                       ? AppTheme.primary.withValues(alpha: 0.15)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: widget.icon,
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
