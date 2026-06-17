@@ -24,7 +24,7 @@ class LiquidGlassContainer extends StatelessWidget {
     this.padding,
     this.margin,
     this.onTap,
-    this.blurSigma = 20,
+    this.blurSigma = 10,
     this.opacity = 0.06,
     this.borderHighlight = true,
     this.baseColor,
@@ -43,21 +43,18 @@ class LiquidGlassContainer extends StatelessWidget {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color.lerp(AppTheme.surfaceRaised, Colors.white, 0.08)!
-              .withValues(alpha: 0.96),
-          Color.lerp(AppTheme.surfaceRaised, accentColor, 0.12)!
-              .withValues(alpha: 0.97),
-          AppTheme.surfaceRaised.withValues(alpha: 0.98),
+          Color.lerp(Colors.white, accentColor, 0.6)!
+              .withValues(alpha: opacity.clamp(0.04, 0.14)),
+          AppTheme.surface.withValues(alpha: 0.10),
         ],
-        stops: const [0.0, 0.45, 1.0],
       ),
       border: Border.all(
-        color: Colors.white.withValues(alpha: borderHighlight ? 0.16 : 0.09),
+        color: Colors.white.withValues(alpha: borderHighlight ? 0.20 : 0.12),
         width: 1,
       ),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.28),
+          color: Colors.black.withValues(alpha: 0.22),
           blurRadius: 20,
           spreadRadius: -8,
           offset: const Offset(0, 10),
