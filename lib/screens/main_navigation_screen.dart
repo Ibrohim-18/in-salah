@@ -102,7 +102,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            filter: ImageFilter.blur(sigmaX: 55, sigmaY: 55),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
@@ -110,12 +110,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppTheme.surface.withValues(alpha: 0.28),
-                    AppTheme.surface.withValues(alpha: 0.44),
+                    AppTheme.surface.withValues(alpha: 0.12),
+                    AppTheme.surface.withValues(alpha: 0.24),
                   ],
                 ),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.14),
+                  color: Colors.white.withValues(alpha: 0.16),
                 ),
                 boxShadow: [
                   BoxShadow(
