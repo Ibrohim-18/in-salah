@@ -106,16 +106,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.04),
-                    AppTheme.surface.withValues(alpha: 0.10),
-                  ],
-                ),
+                color: Colors.white.withValues(alpha: 0.02),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: Colors.white.withValues(alpha: 0.20),
                 ),
                 boxShadow: [
                   BoxShadow(
