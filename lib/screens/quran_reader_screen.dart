@@ -31,6 +31,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Set<int> _read = {};
   String _reciter = 'ar.alafasy';
   String _fontId = 'madina';
+  String _readerModeId = 'dark';
   bool _loading = true;
   bool _error = false;
 
@@ -66,6 +67,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _init() async {
     _reciter = await _progress.getReciter();
     _fontId = await _progress.getFont();
+    _readerModeId = await _progress.getReaderMode();
     _read = await _progress.readAyahsOf(widget.surah.number);
     await _loadSurah();
   }
@@ -73,10 +75,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   QuranFont get _font =>
       kQuranFonts.firstWhere((f) => f.id == _fontId, orElse: () => kQuranFonts.first);
 
+  ReaderTheme get _theme => kReaderThemes.firstWhere(
+    (m) => m.id == _readerModeId,
+    orElse: () => kReaderThemes.first,
+  );
+
   Future<void> _changeFont(String fontId) async {
     if (fontId == _fontId) return;
     await _progress.setFont(fontId);
     setState(() => _fontId = fontId);
+  }
+
+  Future<void> _changeReaderMode(String modeId) async {
+    if (modeId == _readerModeId) return;
+    await _progress.setReaderMode(modeId);
+    setState(() => _readerModeId = modeId);
   }
 
   Future<void> _loadSurah() async {
@@ -209,26 +222,30 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return Scaffold(
-      body: LiquidBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(t),
-              Expanded(
-                child: _loading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: AppTheme.primary),
-                      )
-                    : _error
-                    ? _buildError(t)
-                    : _buildAyahList(t),
-              ),
-              if (!_loading && !_error) _buildPlayerBar(t),
-            ],
+    final theme = _theme;
+    final content = SafeArea(
+      child: Column(
+        children: [
+          _buildHeader(t),
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppTheme.primary),
+                  )
+                : _error
+                ? _buildError(t)
+                : _buildAyahList(t),
           ),
-        ),
+          if (!_loading && !_error) _buildPlayerBar(t),
+        ],
       ),
+    );
+
+    return Scaffold(
+      backgroundColor: theme.background,
+      body: theme.isDark
+          ? LiquidBackground(child: content)
+          : Container(color: theme.background, child: content),
     );
   }
 
@@ -238,6 +255,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         ? 0.0
         : (read / widget.surah.numberOfAyahs).clamp(0.0, 1.0);
     final allRead = read >= widget.surah.numberOfAyahs && read > 0;
+    final theme = _theme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
@@ -247,8 +265,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             children: [
               IconButton(
                 onPressed: () => Navigator.maybePop(context),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white, size: 18),
+                icon: Icon(Icons.arrow_back_ios_new_rounded,
+                    color: theme.text, size: 18),
               ),
               Expanded(
                 child: Column(
@@ -256,28 +274,37 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   children: [
                     Text(
                       widget.surah.englishName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: theme.text,
                       ),
                     ),
                     Text(
                       '${widget.surah.englishTranslation} · $read/${widget.surah.numberOfAyahs}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppTheme.textMuted,
+                        color: theme.muted,
                       ),
                     ),
                   ],
                 ),
               ),
               IconButton(
+                tooltip: t.translate('readerMode'),
+                onPressed: () => _showReaderModePicker(t),
+                icon: Icon(
+                  Icons.brightness_6_rounded,
+                  color: theme.muted,
+                  size: 21,
+                ),
+              ),
+              IconButton(
                 tooltip: t.translate('chooseFont'),
                 onPressed: () => _showFontPicker(t),
-                icon: const Icon(
+                icon: Icon(
                   Icons.font_download_outlined,
-                  color: AppTheme.textMuted,
+                  color: theme.muted,
                   size: 21,
                 ),
               ),
@@ -288,7 +315,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   allRead
                       ? Icons.check_circle_rounded
                       : Icons.check_circle_outline_rounded,
-                  color: allRead ? AppTheme.primary : AppTheme.textMuted,
+                  color: allRead ? AppTheme.primary : theme.muted,
                   size: 22,
                 ),
               ),
@@ -297,7 +324,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: _ReaderProgressBar(fraction: fraction),
+            child: _ReaderProgressBar(
+              fraction: fraction,
+              trackColor: theme.isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : theme.border,
+            ),
           ),
         ],
       ),
@@ -345,6 +377,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   Widget _buildAyahList(AppLocalizations t) {
+    final theme = _theme;
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -362,16 +395,16 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             color: isCurrent
-                ? AppTheme.primary.withValues(alpha: 0.12)
+                ? theme.cardCurrent
                 : isRead
-                ? AppTheme.primary.withValues(alpha: 0.05)
-                : Colors.white.withValues(alpha: 0.03),
+                ? theme.cardRead
+                : theme.card,
             border: Border.all(
               color: isCurrent
-                  ? AppTheme.primary.withValues(alpha: 0.45)
+                  ? theme.borderCurrent
                   : isRead
-                  ? AppTheme.primary.withValues(alpha: 0.22)
-                  : Colors.white.withValues(alpha: 0.06),
+                  ? theme.borderRead
+                  : theme.border,
             ),
           ),
           child: Column(
@@ -389,7 +422,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           ? Icons.check_circle_rounded
                           : Icons.radio_button_unchecked_rounded,
                       size: 20,
-                      color: isRead ? AppTheme.primary : AppTheme.textMuted,
+                      color: isRead ? AppTheme.primary : theme.muted,
                     ),
                   ),
                 ],
@@ -416,7 +449,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   textDirection: TextDirection.rtl,
                   style: AppTheme.arabicText(
                     fontSize: 24,
-                    color: Colors.white,
+                    color: theme.text,
                     height: 2.0,
                     fontFamily: _font.family,
                   ),
@@ -431,7 +464,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.78),
+                      color: theme.translation,
                       height: 1.6,
                     ),
                   ),
@@ -848,6 +881,113 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 );
               }),
               const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showReaderModePicker(AppLocalizations t) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 8),
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    t.translate('readerMode'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Row(
+                  children: kReaderThemes.map((m) {
+                    final selected = m.id == _readerModeId;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _changeReaderMode(m.id);
+                          },
+                          child: Column(
+                            children: [
+                              Container(
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: m.background,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: selected
+                                        ? AppTheme.primary
+                                        : Colors.white.withValues(alpha: 0.12),
+                                    width: selected ? 2 : 1,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'ﺀ',
+                                  style: AppTheme.arabicText(
+                                    fontSize: 26,
+                                    color: m.text,
+                                    height: 1,
+                                    fontFamily: _font.family,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                t.translate(m.labelKey),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: selected
+                                      ? AppTheme.primary
+                                      : Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ],
           ),
         );
@@ -1564,9 +1704,107 @@ class _ReciterTile extends StatelessWidget {
   }
 }
 
+/// A reading-surface palette for the Quran reader. The dark mode keeps the
+/// app's liquid background; the others paint a flat, paper-like surface.
+class ReaderTheme {
+  final String id;
+  final String labelKey;
+  final bool isDark;
+  final Color background;
+  final Color card;
+  final Color cardRead;
+  final Color cardCurrent;
+  final Color border;
+  final Color borderRead;
+  final Color borderCurrent;
+  final Color text;
+  final Color translation;
+  final Color muted;
+
+  const ReaderTheme({
+    required this.id,
+    required this.labelKey,
+    required this.isDark,
+    required this.background,
+    required this.card,
+    required this.cardRead,
+    required this.cardCurrent,
+    required this.border,
+    required this.borderRead,
+    required this.borderCurrent,
+    required this.text,
+    required this.translation,
+    required this.muted,
+  });
+}
+
+const List<ReaderTheme> kReaderThemes = [
+  ReaderTheme(
+    id: 'dark',
+    labelKey: 'readerModeDark',
+    isDark: true,
+    background: Color(0xFF0F1219),
+    card: Color(0x08FFFFFF),
+    cardRead: Color(0x0D8B5CF6),
+    cardCurrent: Color(0x1F8B5CF6),
+    border: Color(0x0FFFFFFF),
+    borderRead: Color(0x388B5CF6),
+    borderCurrent: Color(0x738B5CF6),
+    text: Color(0xFFFFFFFF),
+    translation: Color(0xC7FFFFFF),
+    muted: Color(0xFF64748B),
+  ),
+  ReaderTheme(
+    id: 'sepia',
+    labelKey: 'readerModeSepia',
+    isDark: false,
+    background: Color(0xFFF3E9D2),
+    card: Color(0xFFFAF3E0),
+    cardRead: Color(0xFFEDE2C2),
+    cardCurrent: Color(0xFFE7DAB2),
+    border: Color(0xFFD9CBA3),
+    borderRead: Color(0xFFC9B583),
+    borderCurrent: Color(0xFFB89A5E),
+    text: Color(0xFF4A3B28),
+    translation: Color(0xFF6B5A42),
+    muted: Color(0xFF9A8868),
+  ),
+  ReaderTheme(
+    id: 'white',
+    labelKey: 'readerModeWhite',
+    isDark: false,
+    background: Color(0xFFFFFFFF),
+    card: Color(0xFFF5F5F7),
+    cardRead: Color(0xFFEDF4ED),
+    cardCurrent: Color(0xFFE6F0E6),
+    border: Color(0xFFE3E3E9),
+    borderRead: Color(0xFFCBE0CB),
+    borderCurrent: Color(0xFFAFD2AF),
+    text: Color(0xFF1A1C20),
+    translation: Color(0xFF44474E),
+    muted: Color(0xFF8A8E96),
+  ),
+  ReaderTheme(
+    id: 'green',
+    labelKey: 'readerModeGreen',
+    isDark: false,
+    background: Color(0xFFE7F0E7),
+    card: Color(0xFFEFF6EF),
+    cardRead: Color(0xFFDDECDD),
+    cardCurrent: Color(0xFFD1E7D1),
+    border: Color(0xFFC3D8C3),
+    borderRead: Color(0xFFA9C9A9),
+    borderCurrent: Color(0xFF8BB98B),
+    text: Color(0xFF1E3A24),
+    translation: Color(0xFF3C5C42),
+    muted: Color(0xFF6E8A72),
+  ),
+];
+
 class _ReaderProgressBar extends StatelessWidget {
   final double fraction;
-  const _ReaderProgressBar({required this.fraction});
+  final Color trackColor;
+  const _ReaderProgressBar({required this.fraction, required this.trackColor});
 
   @override
   Widget build(BuildContext context) {
@@ -1574,7 +1812,7 @@ class _ReaderProgressBar extends StatelessWidget {
       height: 5,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withValues(alpha: 0.05),
+        color: trackColor,
       ),
       child: Align(
         alignment: Alignment.centerLeft,
