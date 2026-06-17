@@ -112,6 +112,7 @@ class MissedPrayerService {
     final daysInMonth = DateTime(year, month + 1, 0).day;
     final prayerNames = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     final currentUser = InsforgeService.instance.currentUser;
+    final cloudRecords = <Map<String, dynamic>>[];
     bool changedAny = false;
 
     for (int day = 1; day <= daysInMonth; day++) {
@@ -135,15 +136,13 @@ class MissedPrayerService {
         if (currentUser != null && currentUser.id.isNotEmpty) {
           final dateStr =
               "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-          unawaited(
-            InsforgeService.instance.upsertRecord('missed_prayers_log', {
-              'user_id': currentUser.id,
-              'prayer_name': prayerNames[i],
-              'prayer_date': dateStr,
-              'is_completed': target,
-              'updated_at': DateTime.now().toIso8601String(),
-            }),
-          );
+          cloudRecords.add({
+            'user_id': currentUser.id,
+            'prayer_name': prayerNames[i],
+            'prayer_date': dateStr,
+            'is_completed': target,
+            'updated_at': DateTime.now().toIso8601String(),
+          });
         }
       }
     }
@@ -151,6 +150,16 @@ class MissedPrayerService {
     if (changedAny) {
       // Force a fresh recount on the next lifetime-stats read.
       await prefs.remove(_getLifetimeKey(userId: userId));
+    }
+
+    // One awaited, chunked bulk upsert instead of hundreds of concurrent
+    // fire-and-forget requests — those overwhelmed the network and dropped
+    // most writes, leaving months only partially synced to the cloud.
+    if (cloudRecords.isNotEmpty) {
+      await InsforgeService.instance.bulkUpsertRecords(
+        'missed_prayers_log',
+        cloudRecords,
+      );
     }
   }
 
@@ -170,10 +179,16 @@ class MissedPrayerService {
       final date = DateTime.tryParse(dateStr);
       if (date == null) continue;
 
-      final completed = record['is_completed'] as bool? ?? false;
+      final completed = record['is_completed'] == true;
+      // Only ever ADD completions from the cloud. Never clear a prayer the
+      // user already ticked locally: the cloud can lag behind (a dropped sync
+      // leaves a stale/false row), and overwriting local with that silently
+      // un-ticked the user's prayers on the next login.
+      if (!completed) continue;
+
       final key = _getKey(prayerName, date, userId: userId);
-      if ((prefs.getBool(key) ?? false) != completed) {
-        await prefs.setBool(key, completed);
+      if (!(prefs.getBool(key) ?? false)) {
+        await prefs.setBool(key, true);
         applied++;
       }
     }

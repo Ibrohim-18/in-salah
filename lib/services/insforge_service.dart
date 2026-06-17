@@ -484,6 +484,47 @@ class InsforgeService {
     }
   }
 
+  /// Upserts many rows in a few awaited, chunked requests. Replaces firing
+  /// hundreds of concurrent fire-and-forget [upsertRecord] calls (which
+  /// overwhelm the connection and silently drop most of the writes — the cause
+  /// of partially-synced months). Returns whether every chunk succeeded.
+  Future<bool> bulkUpsertRecords(
+    String table,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    if (_accessToken == null) return false;
+    if (rows.isEmpty) return true;
+
+    const chunkSize = 200;
+    var allOk = true;
+    for (var i = 0; i < rows.length; i += chunkSize) {
+      final end = min(i + chunkSize, rows.length);
+      final chunk = rows.sublist(i, end);
+      try {
+        final resp = await http
+            .post(
+              Uri.parse('$_base/api/database/records/$table'),
+              headers: {
+                ..._authHeaders,
+                'Prefer': 'resolution=merge-duplicates',
+              },
+              body: jsonEncode(chunk),
+            )
+            .timeout(_httpTimeout);
+        if (resp.statusCode >= 400) {
+          debugPrint(
+            'InsForge bulk upsert error (${resp.statusCode}): ${resp.body}',
+          );
+          allOk = false;
+        }
+      } catch (e) {
+        debugPrint('InsForge bulk upsert error: $e');
+        allOk = false;
+      }
+    }
+    return allOk;
+  }
+
   Future<void> deleteAccount() async {
     if (_accessToken == null) {
       throw InsforgeAuthException('Not authenticated');
