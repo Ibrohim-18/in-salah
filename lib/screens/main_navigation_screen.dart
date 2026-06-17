@@ -110,12 +110,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppTheme.surface.withValues(alpha: 0.12),
-                    AppTheme.surface.withValues(alpha: 0.24),
+                    Colors.white.withValues(alpha: 0.04),
+                    AppTheme.surface.withValues(alpha: 0.10),
                   ],
                 ),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: Colors.white.withValues(alpha: 0.18),
                 ),
                 boxShadow: [
                   BoxShadow(
