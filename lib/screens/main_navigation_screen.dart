@@ -102,7 +102,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(32),
@@ -110,12 +110,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppTheme.surface.withValues(alpha: 0.70),
-                    AppTheme.surface.withValues(alpha: 0.92),
+                    AppTheme.surface.withValues(alpha: 0.42),
+                    AppTheme.surface.withValues(alpha: 0.60),
                   ],
                 ),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: Colors.white.withValues(alpha: 0.12),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -125,28 +125,76 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: List.generate(_destinations.length, (index) {
-                    final destination = _destinations[index];
-                    final isSelected = _currentIndex == index;
+              child: Stack(
+                children: [
+                  // Glassy top shine.
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: Container(
+                        height: 28,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(32),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withValues(alpha: 0.10),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Bright top edge highlight.
+                  Positioned(
+                    top: 1,
+                    left: 40,
+                    right: 40,
+                    child: IgnorePointer(
+                      child: Container(
+                        height: 1,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.white.withValues(alpha: 0.30),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: List.generate(_destinations.length, (index) {
+                        final destination = _destinations[index];
+                        final isSelected = _currentIndex == index;
 
-                    return _buildNavItem(
-                      index: index,
-                      destination: destination,
-                      isSelected: isSelected,
-                      customIcon: index == 4
-                          ? _buildProfileIcon(
-                              destination: destination,
-                              isSelected: isSelected,
-                              avatarPath: avatarPath,
-                              avatarImage: avatarImage,
-                            )
-                          : null,
-                    );
-                  }),
-                ),
+                        return _buildNavItem(
+                          index: index,
+                          destination: destination,
+                          isSelected: isSelected,
+                          customIcon: index == 4
+                              ? _buildProfileIcon(
+                                  destination: destination,
+                                  isSelected: isSelected,
+                                  avatarPath: avatarPath,
+                                  avatarImage: avatarImage,
+                                )
+                              : null,
+                        );
+                      }),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -164,36 +212,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final color = isSelected ? AppTheme.primary : AppTheme.textMuted;
 
     return Expanded(
-      child: GestureDetector(
+      child: _NavBarItem(
+        isSelected: isSelected,
+        color: color,
+        label: AppLocalizations.of(context).translate(destination.labelKey),
+        icon:
+            customIcon ??
+            Icon(
+              isSelected ? destination.selectedIcon : destination.icon,
+              color: color,
+              size: 24,
+            ),
         onTap: () => setState(() => _currentIndex = index),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              customIcon ??
-                  Icon(
-                    isSelected ? destination.selectedIcon : destination.icon,
-                    color: color,
-                    size: 24,
-                  ),
-              const SizedBox(height: 2),
-              Text(
-                AppLocalizations.of(context).translate(destination.labelKey),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textScaler: TextScaler.noScaling,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 10,
-                  height: 1.2,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -269,4 +299,91 @@ class _NavDestination {
     required this.selectedIcon,
     required this.labelKey,
   });
+}
+
+/// A single bottom-bar entry. Animates a soft highlight pill under the active
+/// icon and gives a springy scale-down response on press.
+class _NavBarItem extends StatefulWidget {
+  const _NavBarItem({
+    required this.isSelected,
+    required this.color,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final bool isSelected;
+  final Color color;
+  final String label;
+  final Widget icon;
+  final VoidCallback onTap;
+
+  @override
+  State<_NavBarItem> createState() => _NavBarItemState();
+}
+
+class _NavBarItemState extends State<_NavBarItem> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (_pressed == value) return;
+    setState(() => _pressed = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onTap,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.86 : 1.0,
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.isSelected
+                      ? AppTheme.primary.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: widget.icon,
+              ),
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  color: widget.color,
+                  fontSize: 10,
+                  height: 1.2,
+                  fontWeight: widget.isSelected
+                      ? FontWeight.w600
+                      : FontWeight.w400,
+                ),
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textScaler: TextScaler.noScaling,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
