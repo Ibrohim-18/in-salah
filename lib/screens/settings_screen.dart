@@ -99,6 +99,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () =>
                           _showCalculationMethodPicker(context, provider),
                     ),
+                    _buildDivider(),
+                    _buildRow(
+                      icon: Icons.school_rounded,
+                      accentColor: const Color(0xFFFFC773),
+                      title: t.translate('madhab'),
+                      subtitle: _getMadhabName(provider.settings.madhab, t),
+                      onTap: () => _showMadhabPicker(context, provider),
+                    ),
                   ]),
                   const SizedBox(height: 24),
                   _buildSectionHeader(t.translate('account')),
@@ -2072,16 +2080,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  void _showLanguagePicker(BuildContext context, AppProvider provider) {
-    final t = AppLocalizations.of(context);
-    final languages = [
-      ('system', t.translate('systemLanguage')),
-      ('en', t.translate('english')),
-      ('ru', t.translate('russian')),
-      ('ar', t.translate('arabicLang')),
-      ('tg', t.translate('tajik')),
-    ];
-
+  void _showSingleChoiceSheet(
+    BuildContext context, {
+    required String title,
+    required List<({String value, String label, String? description})> options,
+    required String selectedValue,
+    required ValueChanged<String> onSelected,
+  }) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surface,
@@ -2105,7 +2110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  AppLocalizations.of(context).translate('language'),
+                  title,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -2113,8 +2118,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...languages.map((lang) {
-                  final isSelected = provider.settings.locale == lang.$1;
+                ...options.map((opt) {
+                  final isSelected = opt.value == selectedValue;
                   return ListTile(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -2123,7 +2128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? AppTheme.primary.withValues(alpha: 0.08)
                         : null,
                     title: Text(
-                      lang.$2,
+                      opt.label,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: isSelected
@@ -2134,6 +2139,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : AppTheme.textSecondary,
                       ),
                     ),
+                    subtitle: opt.description == null
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              opt.description!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textMuted,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
                     trailing: isSelected
                         ? const Icon(
                             Icons.check_rounded,
@@ -2142,9 +2160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           )
                         : null,
                     onTap: () {
-                      provider.updateSettings(
-                        provider.settings.copyWith(locale: lang.$1),
-                      );
+                      onSelected(opt.value);
                       Navigator.maybePop(ctx);
                     },
                   );
@@ -2158,89 +2174,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showLanguagePicker(BuildContext context, AppProvider provider) {
+    final t = AppLocalizations.of(context);
+    _showSingleChoiceSheet(
+      context,
+      title: t.translate('language'),
+      selectedValue: provider.settings.locale,
+      options: [
+        (value: 'system', label: t.translate('systemLanguage'), description: null),
+        (value: 'en', label: t.translate('english'), description: null),
+        (value: 'ru', label: t.translate('russian'), description: null),
+        (value: 'ar', label: t.translate('arabicLang'), description: null),
+        (value: 'tg', label: t.translate('tajik'), description: null),
+      ],
+      onSelected: (value) => provider.updateSettings(
+        provider.settings.copyWith(locale: value),
+      ),
+    );
+  }
+
   void _showCalculationMethodPicker(
     BuildContext context,
     AppProvider provider,
   ) {
     final t = AppLocalizations.of(context);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    _showSingleChoiceSheet(
+      context,
+      title: t.translate('calculationMethod'),
+      selectedValue: provider.settings.calculationMethod,
+      options: [
+        (
+          value: 'muslim_world_league',
+          label: t.translate('muslimWorldLeague'),
+          description: null,
+        ),
+        (value: 'umm_al_qura', label: t.translate('ummAlQura'), description: null),
+        (value: 'isna', label: t.translate('isna'), description: null),
+        (value: 'egyptian', label: t.translate('egyptian'), description: null),
+        (value: 'karachi', label: t.translate('karachi'), description: null),
+      ],
+      onSelected: (value) => provider.updateSettings(
+        provider.settings.copyWith(calculationMethod: value),
       ),
-      builder: (ctx) {
-        Widget buildOption(String label, String value) {
-          final isSelected = provider.settings.calculationMethod == value;
-          return ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            tileColor: isSelected
-                ? AppTheme.primary.withValues(alpha: 0.08)
-                : null,
-            title: Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
-              ),
-            ),
-            trailing: isSelected
-                ? const Icon(
-                    Icons.check_rounded,
-                    color: AppTheme.primary,
-                    size: 20,
-                  )
-                : null,
-            onTap: () {
-              provider.updateSettings(
-                provider.settings.copyWith(calculationMethod: value),
-              );
-              Navigator.maybePop(ctx);
-            },
-          );
-        }
+    );
+  }
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceBorder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  t.translate('calculationMethod'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                buildOption(
-                  t.translate('muslimWorldLeague'),
-                  'muslim_world_league',
-                ),
-                buildOption(t.translate('ummAlQura'), 'umm_al_qura'),
-                buildOption(t.translate('isna'), 'isna'),
-                buildOption(t.translate('egyptian'), 'egyptian'),
-                buildOption(t.translate('karachi'), 'karachi'),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        );
-      },
+  void _showMadhabPicker(BuildContext context, AppProvider provider) {
+    final t = AppLocalizations.of(context);
+    _showSingleChoiceSheet(
+      context,
+      title: t.translate('madhab'),
+      selectedValue: provider.settings.madhab == 'hanafi' ? 'hanafi' : 'shafi',
+      options: [
+        (
+          value: 'shafi',
+          label: t.translate('madhabShafi'),
+          description: t.translate('madhabShafiDesc'),
+        ),
+        (
+          value: 'hanafi',
+          label: t.translate('madhabHanafi'),
+          description: t.translate('madhabHanafiDesc'),
+        ),
+      ],
+      onSelected: (value) => provider.updateSettings(
+        provider.settings.copyWith(madhab: value),
+      ),
     );
   }
 
@@ -2418,6 +2417,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       default:
         return t.translate('muslimWorldLeague');
     }
+  }
+
+  String _getMadhabName(String val, AppLocalizations t) {
+    return val == 'hanafi'
+        ? t.translate('madhabHanafi')
+        : t.translate('madhabShafi');
   }
 
   ImageProvider? _resolveAvatarImage(AppProvider provider) {

@@ -192,6 +192,13 @@
   "egyptian": "Egyptian Authority",
   "karachi": "Karachi (Pakistan)",
 
+  "madhab": "Madhab (Asr)",
+  "madhabSubtitle": "School for Asr timing",
+  "madhabShafi": "Shafiʿi, Maliki, Hanbali",
+  "madhabShafiDesc": "Asr begins when an object's shadow equals its length",
+  "madhabHanafi": "Hanafi",
+  "madhabHanafiDesc": "Asr begins when the shadow is twice the object's length (later)",
+
   "accountSettings": "Account settings",
   "email": "Email",
   "notSignedIn": "Not signed in",
