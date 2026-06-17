@@ -99,14 +99,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () =>
                           _showCalculationMethodPicker(context, provider),
                     ),
-                    _buildDivider(),
-                    _buildRow(
-                      icon: Icons.school_rounded,
-                      accentColor: const Color(0xFFFFC773),
-                      title: t.translate('madhab'),
-                      subtitle: _getMadhabName(provider.settings.madhab, t),
-                      onTap: () => _showMadhabPicker(context, provider),
-                    ),
                   ]),
                   const SizedBox(height: 24),
                   _buildSectionHeader(t.translate('account')),
@@ -2219,30 +2211,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showMadhabPicker(BuildContext context, AppProvider provider) {
-    final t = AppLocalizations.of(context);
-    _showSingleChoiceSheet(
-      context,
-      title: t.translate('madhab'),
-      selectedValue: provider.settings.madhab == 'hanafi' ? 'hanafi' : 'shafi',
-      options: [
-        (
-          value: 'shafi',
-          label: t.translate('madhabShafi'),
-          description: t.translate('madhabShafiDesc'),
-        ),
-        (
-          value: 'hanafi',
-          label: t.translate('madhabHanafi'),
-          description: t.translate('madhabHanafiDesc'),
-        ),
-      ],
-      onSelected: (value) => provider.updateSettings(
-        provider.settings.copyWith(madhab: value),
-      ),
-    );
-  }
-
   // ---------------- Helpers reused in sheets ----------------
 
   Future<void> _openExternalUrl(String url) async {
@@ -2417,12 +2385,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       default:
         return t.translate('muslimWorldLeague');
     }
-  }
-
-  String _getMadhabName(String val, AppLocalizations t) {
-    return val == 'hanafi'
-        ? t.translate('madhabHanafi')
-        : t.translate('madhabShafi');
   }
 
   ImageProvider? _resolveAvatarImage(AppProvider provider) {
