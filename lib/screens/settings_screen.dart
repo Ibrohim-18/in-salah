@@ -332,23 +332,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---------------- Settings group + rows ----------------
 
   Widget _buildSettingsGroup(List<Widget> children) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.035),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Column(children: children),
-      ),
+    return LiquidGlassContainer(
+      borderRadius: 20,
+      opacity: 0.08,
+      padding: EdgeInsets.zero,
+      child: Column(children: children),
     );
   }
 
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.only(left: 64),
-      child: Container(height: 1, color: Colors.white.withValues(alpha: 0.05)),
+      child: Container(height: 1, color: Colors.white.withValues(alpha: 0.07)),
     );
   }
 
@@ -541,41 +536,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(t.translate('dangerZone')),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppTheme.danger.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppTheme.danger.withValues(alpha: 0.18),
+        LiquidGlassContainer(
+          borderRadius: 20,
+          opacity: 0.08,
+          baseColor: AppTheme.danger,
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              _buildDangerRow(
+                icon: Icons.logout_rounded,
+                title: t.translate('signOut'),
+                subtitle: t.translate('signOutSubtitle'),
+                color: AppTheme.textSecondary,
+                onTap: () => _confirmSignOut(context),
               ),
-            ),
-            child: Column(
-              children: [
-                _buildDangerRow(
-                  icon: Icons.logout_rounded,
-                  title: t.translate('signOut'),
-                  subtitle: t.translate('signOutSubtitle'),
-                  color: AppTheme.textSecondary,
-                  onTap: () => _confirmSignOut(context),
+              Padding(
+                padding: const EdgeInsets.only(left: 64),
+                child: Container(
+                  height: 1,
+                  color: AppTheme.danger.withValues(alpha: 0.16),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 64),
-                  child: Container(
-                    height: 1,
-                    color: AppTheme.danger.withValues(alpha: 0.12),
-                  ),
-                ),
-                _buildDangerRow(
-                  icon: Icons.delete_forever_rounded,
-                  title: t.translate('deleteAccount'),
-                  subtitle: t.translate('deleteAccountSubtitle'),
-                  color: AppTheme.danger,
-                  onTap: () => _confirmDeleteAccount(context),
-                ),
-              ],
-            ),
+              ),
+              _buildDangerRow(
+                icon: Icons.delete_forever_rounded,
+                title: t.translate('deleteAccount'),
+                subtitle: t.translate('deleteAccountSubtitle'),
+                color: AppTheme.danger,
+                onTap: () => _confirmDeleteAccount(context),
+              ),
+            ],
           ),
         ),
       ],
