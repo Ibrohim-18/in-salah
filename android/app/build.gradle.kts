@@ -57,6 +57,15 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // R8 resource shrinking strips resources that are only referenced by
+            // string name at runtime — the notification small icon
+            // (ic_stat_notification) and the custom adhan/iqama raw sounds — and
+            // also trims reflection-based plugin code. With the icon gone, Android
+            // silently drops every scheduled notification, so reminders never
+            // appeared in release/Play builds while debug builds (no shrinking)
+            // worked. Disable both so notifications are delivered everywhere.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
