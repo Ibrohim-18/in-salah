@@ -199,6 +199,77 @@ class MissedPrayerService {
     return applied;
   }
 
+  /// Re-uploads every locally-ticked prayer that the cloud is missing (or has
+  /// stored as `false`) for [userId]. [cloudRecords] is the same payload
+  /// passed to [restoreFromCloud], used to avoid re-pushing rows the cloud
+  /// already has completed.
+  ///
+  /// Marks are written to the cloud fire-and-forget in [markPrayerCompleted],
+  /// so a single dropped network write silently leaves a completion local-only.
+  /// On the next login on another device — or after a reinstall — the cloud is
+  /// the source of truth, so those un-synced ticks vanished. Healing the cloud
+  /// from local on every restore makes both sides converge to the union of all
+  /// completed prayers. Returns how many rows were pushed.
+  Future<int> pushLocalCompletionsToCloud(
+    String userId,
+    List<Map<String, dynamic>> cloudRecords,
+  ) async {
+    if (userId.isEmpty) return 0;
+    final prefs = await SharedPreferences.getInstance();
+
+    // Local keys the cloud already has marked completed — nothing to push.
+    final cloudCompleted = <String>{};
+    for (final record in cloudRecords) {
+      if (record['is_completed'] != true) continue;
+      final prayerName = record['prayer_name'] as String?;
+      final dateStr = record['prayer_date'] as String?;
+      if (prayerName == null || dateStr == null) continue;
+      final date = DateTime.tryParse(dateStr);
+      if (date == null) continue;
+      cloudCompleted.add(_getKey(prayerName, date, userId: userId));
+    }
+
+    final prefix = '$_keyPrefix${_scopeId(userId)}_';
+    final pushRecords = <Map<String, dynamic>>[];
+    for (final key in prefs.getKeys()) {
+      if (!key.startsWith(prefix)) continue;
+      if (!(prefs.getBool(key) ?? false)) continue;
+      if (cloudCompleted.contains(key)) continue;
+
+      final parsed = _parseLocalKey(key, prefix);
+      if (parsed == null) continue;
+      final (prayerName, date) = parsed;
+      final dateStr =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      pushRecords.add({
+        'user_id': userId,
+        'prayer_name': prayerName,
+        'prayer_date': dateStr,
+        'is_completed': true,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    }
+
+    if (pushRecords.isEmpty) return 0;
+    await InsforgeService.instance.bulkUpsertRecords(
+      'missed_prayers_log',
+      pushRecords,
+    );
+    return pushRecords.length;
+  }
+
+  /// Parses a local completion key back into its prayer name and date.
+  /// [prefix] is `${_keyPrefix}${scope}_`, leaving `PrayerName_year_month_day`.
+  (String, DateTime)? _parseLocalKey(String key, String prefix) {
+    final parts = key.substring(prefix.length).split('_');
+    if (parts.length != 4) return null;
+    final year = int.tryParse(parts[1]);
+    final month = int.tryParse(parts[2]);
+    final day = int.tryParse(parts[3]);
+    if (year == null || month == null || day == null) return null;
+    return (parts[0], DateTime(year, month, day));
+  }
+
   Future<Map<String, int>> getLifetimeStats(
     UserSettings settings,
     int pastPrayersToday, {

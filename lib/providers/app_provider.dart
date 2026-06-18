@@ -167,8 +167,12 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _restoreCloudMissedPrayers(String userId) async {
     try {
       final records = await _fetchMissedPrayers(userId);
-      if (records.isEmpty) return;
+      // Two-way reconciliation: pull completed rows the cloud has down to this
+      // device, and push local ticks the cloud is missing back up. Both run
+      // even when the cloud is empty so a fresh/wiped cloud is rebuilt from
+      // local data instead of clearing the user's checkmarks.
       await _missedPrayerService.restoreFromCloud(userId, records);
+      await _missedPrayerService.pushLocalCompletionsToCloud(userId, records);
     } catch (e) {
       debugPrint('Error restoring missed prayers from cloud: $e');
     }
