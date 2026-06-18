@@ -57,15 +57,19 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
-            // R8 resource shrinking strips resources that are only referenced by
-            // string name at runtime — the notification small icon
-            // (ic_stat_notification) and the custom adhan/iqama raw sounds — and
-            // also trims reflection-based plugin code. With the icon gone, Android
-            // silently drops every scheduled notification, so reminders never
-            // appeared in release/Play builds while debug builds (no shrinking)
-            // worked. Disable both so notifications are delivered everywhere.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // R8 strips resources referenced only by string name at runtime —
+            // the notification small icon and the adhan/iqama sounds — which
+            // silently kills every scheduled notification in release builds.
+            // res/raw/keep.xml forces the resource shrinker to keep them, and
+            // proguard-rules.pro keeps the reflection-based plugin code
+            // (flutter_local_notifications, workmanager, Gson). Shrinking stays
+            // on so the bundle is small and ships a deobfuscation mapping.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

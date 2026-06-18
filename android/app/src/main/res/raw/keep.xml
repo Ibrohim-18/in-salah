@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- These resources are referenced only by string name at runtime
+     (notification small icon via AndroidNotificationDetails.icon, and the
+     adhan/iqama sounds via RawResourceAndroidNotificationSound), so the R8
+     resource shrinker treats them as unreachable and strips them — which
+     silently kills every scheduled notification in release builds. Force the
+     shrinker to keep them. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_notification,@raw/adhan_makkah,@raw/adhan_madina,@raw/iqama_chime" />
