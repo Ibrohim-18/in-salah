@@ -2188,6 +2188,7 @@ class _MushafPageState extends State<_MushafPage>
     with AutomaticKeepAliveClientMixin {
   MushafPageData? _data;
   String? _pageFont;
+  String? _plainFont; // plain V2 font, used for clean (uncoloured) ayah markers
   bool _loading = true;
   bool _error = false;
 
@@ -2208,13 +2209,17 @@ class _MushafPageState extends State<_MushafPage>
     final results = await Future.wait([
       widget.service.fetchPage(widget.pageNumber),
       widget.service.ensurePageFont(widget.pageNumber, tajweed: widget.tajweed),
+      // Plain font for the ayah-end markers (kept uncoloured even in tajweed).
+      widget.service.ensurePageFont(widget.pageNumber, tajweed: false),
     ]);
     if (!mounted) return;
     final data = results[0] as MushafPageData?;
     final font = results[1] as String?;
+    final plain = results[2] as String?;
     setState(() {
       _data = data;
       _pageFont = font;
+      _plainFont = plain;
       _loading = false;
       _error = data == null || data.rows.isEmpty || font == null;
     });
@@ -2361,21 +2366,37 @@ class _MushafPageState extends State<_MushafPage>
           ),
         );
       case MushafRowType.line:
+        final baseStyle = TextStyle(
+          fontFamily: family,
+          fontSize: size,
+          height: 1.0,
+          // Tajweed colours come from the COLR font itself; the base colour
+          // is used for the plain V2 font.
+          color: theme.text,
+        );
+        // In tajweed, render the ayah-end markers with the plain V2 font (same
+        // glyph codes) so they stay clean circles instead of being coloured.
+        final useMixed = widget.tajweed && _plainFont != null;
         final Widget line = SizedBox(
           width: double.infinity,
-          child: Text(
-            row.words.map((w) => w.code).join(),
+          child: Text.rich(
+            useMixed
+                ? TextSpan(
+                    children: [
+                      for (final w in row.words)
+                        TextSpan(
+                          text: w.code,
+                          style: w.isEnd
+                              ? baseStyle.copyWith(fontFamily: _plainFont)
+                              : baseStyle,
+                        ),
+                    ],
+                  )
+                : TextSpan(text: row.words.map((w) => w.code).join()),
+            style: baseStyle,
             textAlign: TextAlign.center,
             textDirection: TextDirection.rtl,
             maxLines: 1,
-            style: TextStyle(
-              fontFamily: family,
-              fontSize: size,
-              height: 1.0,
-              // Tajweed colours come from the COLR font itself; the base colour
-              // is used for the plain V2 font.
-              color: theme.text,
-            ),
           ),
         );
         // The tajweed COLR font bakes its base letters in a dark palette that
