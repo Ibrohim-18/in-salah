@@ -2194,16 +2194,6 @@ class _MushafPageState extends State<_MushafPage>
   @override
   bool get wantKeepAlive => true;
 
-  /// Tajweed colours are designed for a light page. On the dark app theme we
-  /// render the page on a white "sheet" so the colours stay readable; light
-  /// reader themes (white/sepia/green) are kept as the user chose them.
-  ReaderTheme get _effectiveTheme {
-    if (widget.tajweed && widget.theme.isDark) {
-      return kReaderThemes.firstWhere((m) => m.id == 'white');
-    }
-    return widget.theme;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -2233,7 +2223,7 @@ class _MushafPageState extends State<_MushafPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final theme = _effectiveTheme;
+    final theme = widget.theme;
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.primary),
@@ -2284,8 +2274,8 @@ class _MushafPageState extends State<_MushafPage>
     final data = _data!;
     final family = _pageFont!;
     return Container(
-      // Paint the page surface for light themes (and the tajweed "sheet");
-      // dark plain pages stay transparent so the liquid background shows.
+      // Light themes paint their own page surface; the dark theme keeps the
+      // original liquid background showing through.
       color: theme.isDark ? null : theme.background,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -2330,7 +2320,7 @@ class _MushafPageState extends State<_MushafPage>
   }
 
   Widget _buildRow(MushafRow row, double size, String family) {
-    final theme = _effectiveTheme;
+    final theme = widget.theme;
     switch (row.type) {
       case MushafRowType.header:
         final surah = widget.surahNames[row.surah];
