@@ -11,6 +11,8 @@ class QuranProgressService {
   static const String _defaultFont = 'madina';
   static const String _readerModeKey = 'quran_reader_mode';
   static const String _defaultReaderMode = 'dark';
+  static const String _layoutKey = 'quran_layout';
+  static const String _defaultLayout = 'list';
   static const String _guestScope = 'guest';
 
   /// Total ayahs in the whole Quran (used as the overall-progress denominator).
@@ -123,5 +125,15 @@ class QuranProgressService {
   Future<void> setReaderMode(String modeId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_readerModeKey, modeId);
+  }
+
+  Future<String> getLayout() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_layoutKey) ?? _defaultLayout;
+  }
+
+  Future<void> setLayout(String layoutId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_layoutKey, layoutId);
   }
 }

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -32,8 +33,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   String _reciter = 'ar.alafasy';
   String _fontId = 'madina';
   String _readerModeId = 'dark';
+  String _layoutId = 'list';
   bool _loading = true;
   bool _error = false;
+
+  // Cache for the (expensive) continuous mushaf page so frequent audio-position
+  // setState ticks don't rebuild the whole justified RichText.
+  String? _mushafSig;
+  Widget? _mushafCache;
+  final List<TapGestureRecognizer> _mushafRecognizers = [];
 
   bool _isPlaying = false;
   int? _currentIndex; // index into _ayahs currently playing/paused
@@ -61,6 +69,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _durationSub?.cancel();
     _player.dispose();
     _scrollController.dispose();
+    for (final r in _mushafRecognizers) {
+      r.dispose();
+    }
     super.dispose();
   }
 
@@ -68,6 +79,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _reciter = await _progress.getReciter();
     _fontId = await _progress.getFont();
     _readerModeId = await _progress.getReaderMode();
+    _layoutId = await _progress.getLayout();
     _read = await _progress.readAyahsOf(widget.surah.number);
     await _loadSurah();
   }
@@ -83,13 +95,25 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _changeFont(String fontId) async {
     if (fontId == _fontId) return;
     await _progress.setFont(fontId);
-    setState(() => _fontId = fontId);
+    setState(() {
+      _fontId = fontId;
+      _mushafSig = null; // font changed — rebuild the mushaf page
+    });
   }
 
   Future<void> _changeReaderMode(String modeId) async {
     if (modeId == _readerModeId) return;
     await _progress.setReaderMode(modeId);
-    setState(() => _readerModeId = modeId);
+    setState(() {
+      _readerModeId = modeId;
+      _mushafSig = null; // theme colours changed — rebuild the mushaf page
+    });
+  }
+
+  Future<void> _toggleLayout() async {
+    final next = _layoutId == 'mushaf' ? 'list' : 'mushaf';
+    await _progress.setLayout(next);
+    setState(() => _layoutId = next);
   }
 
   Future<void> _loadSurah() async {
@@ -234,6 +258,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   )
                 : _error
                 ? _buildError(t)
+                : _layoutId == 'mushaf'
+                ? _buildMushafPage(t)
                 : _buildAyahList(t),
           ),
           if (!_loading && !_error) _buildPlayerBar(t),
@@ -288,6 +314,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+              IconButton(
+                tooltip: t.translate(
+                    _layoutId == 'mushaf' ? 'listView' : 'mushafView'),
+                onPressed: _toggleLayout,
+                icon: Icon(
+                  _layoutId == 'mushaf'
+                      ? Icons.view_agenda_outlined
+                      : Icons.auto_stories_outlined,
+                  color: _layoutId == 'mushaf' ? AppTheme.primary : theme.muted,
+                  size: 21,
                 ),
               ),
               IconButton(
@@ -492,6 +530,139 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           fontWeight: FontWeight.w700,
           color: AppTheme.primary,
         ),
+      ),
+    );
+  }
+
+  /// Continuous mushaf page: all ayahs flow as one justified RTL block, each
+  /// closed by a rosette carrying its number — like a printed Madinah page.
+  Widget _buildMushafPage(AppLocalizations t) {
+    final theme = _theme;
+    final sig =
+        '${_ayahs.length}|$_currentIndex|$_fontId|$_readerModeId|${_read.length}|${Object.hashAll(_read)}';
+    if (sig == _mushafSig && _mushafCache != null) return _mushafCache!;
+    _mushafSig = sig;
+
+    for (final r in _mushafRecognizers) {
+      r.dispose();
+    }
+    _mushafRecognizers.clear();
+
+    final spans = <InlineSpan>[];
+    for (var i = 0; i < _ayahs.length; i++) {
+      final ayah = _ayahs[i];
+      final isRead = _read.contains(ayah.numberInSurah);
+      final isCurrent = _currentIndex == i;
+      final recognizer = TapGestureRecognizer()
+        ..onTap = () => _toggleAyahRead(ayah.numberInSurah);
+      _mushafRecognizers.add(recognizer);
+
+      spans.add(
+        TextSpan(
+          text: ayah.arabic,
+          recognizer: recognizer,
+          style: TextStyle(
+            background: isCurrent
+                ? (Paint()..color = theme.cardCurrent)
+                : isRead
+                ? (Paint()..color = theme.cardRead)
+                : null,
+          ),
+        ),
+      );
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: GestureDetector(
+              onTap: () => _toggleAyahRead(ayah.numberInSurah),
+              behavior: HitTestBehavior.opaque,
+              child: _AyahEndMarker(label: _toArabicDigits(ayah.numberInSurah)),
+            ),
+          ),
+        ),
+      );
+      spans.add(const TextSpan(text: ' '));
+    }
+
+    final showBasmala = widget.surah.number != 1 && widget.surah.number != 9;
+
+    _mushafCache = ListView(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
+      children: [
+        _buildMushafHeader(theme),
+        if (showBasmala) ...[
+          const SizedBox(height: 16),
+          Text(
+            'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            style: AppTheme.arabicText(
+              fontSize: 24,
+              height: 1.8,
+              color: theme.text.withValues(alpha: 0.92),
+              fontFamily: _font.family,
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        Text.rich(
+          TextSpan(children: spans),
+          textAlign: TextAlign.justify,
+          textDirection: TextDirection.rtl,
+          style: AppTheme.arabicText(
+            fontSize: 27,
+            color: theme.text,
+            height: 2.35,
+            fontFamily: _font.family,
+          ),
+        ),
+      ],
+    );
+    return _mushafCache!;
+  }
+
+  /// Decorative surah banner sitting atop the mushaf page.
+  Widget _buildMushafHeader(ReaderTheme theme) {
+    final accentBorder = theme.isDark
+        ? AppTheme.primary.withValues(alpha: 0.30)
+        : theme.borderCurrent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: theme.isDark
+              ? [
+                  AppTheme.primary.withValues(alpha: 0.14),
+                  AppTheme.primaryDeep.withValues(alpha: 0.05),
+                ]
+              : [theme.cardRead, theme.card],
+        ),
+        border: Border.all(color: accentBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.brightness_low_rounded,
+              color: theme.muted.withValues(alpha: 0.7), size: 18),
+          Expanded(
+            child: Text(
+              'سورة ${widget.surah.nameArabic}',
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              style: AppTheme.arabicText(
+                fontSize: 24,
+                height: 1.5,
+                color: theme.text,
+                fontFamily: _font.family,
+              ),
+            ),
+          ),
+          Icon(Icons.brightness_low_rounded,
+              color: theme.muted.withValues(alpha: 0.7), size: 18),
+        ],
       ),
     );
   }
