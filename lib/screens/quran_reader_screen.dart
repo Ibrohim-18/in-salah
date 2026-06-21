@@ -2194,6 +2194,16 @@ class _MushafPageState extends State<_MushafPage>
   @override
   bool get wantKeepAlive => true;
 
+  /// Tajweed colours are designed for a light page. On the dark app theme we
+  /// render the page on a white "sheet" so the colours stay readable; light
+  /// reader themes (white/sepia/green) are kept as the user chose them.
+  ReaderTheme get _effectiveTheme {
+    if (widget.tajweed && widget.theme.isDark) {
+      return kReaderThemes.firstWhere((m) => m.id == 'white');
+    }
+    return widget.theme;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2223,7 +2233,7 @@ class _MushafPageState extends State<_MushafPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final theme = widget.theme;
+    final theme = _effectiveTheme;
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.primary),
@@ -2273,23 +2283,28 @@ class _MushafPageState extends State<_MushafPage>
 
     final data = _data!;
     final family = _pageFont!;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth - 28;
-        final size = _fitFontSize(data.rows, width, family);
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
-          child: ClipRect(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final row in data.rows) _buildRow(row, size, family),
-              ],
+    return Container(
+      // Paint the page surface for light themes (and the tajweed "sheet");
+      // dark plain pages stay transparent so the liquid background shows.
+      color: theme.isDark ? null : theme.background,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth - 28;
+          final size = _fitFontSize(data.rows, width, family);
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+            child: ClipRect(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final row in data.rows) _buildRow(row, size, family),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -2315,7 +2330,7 @@ class _MushafPageState extends State<_MushafPage>
   }
 
   Widget _buildRow(MushafRow row, double size, String family) {
-    final theme = widget.theme;
+    final theme = _effectiveTheme;
     switch (row.type) {
       case MushafRowType.header:
         final surah = widget.surahNames[row.surah];
