@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/quran_models.dart';
+import '../services/mushaf_service.dart';
 import '../services/quran_progress_service.dart';
 import '../services/quran_service.dart';
 import '../utils/theme.dart';
@@ -23,6 +24,7 @@ class QuranReaderScreen extends StatefulWidget {
 
 class _QuranReaderScreenState extends State<QuranReaderScreen> {
   final _service = QuranService();
+  final _mushaf = MushafService();
   final _progress = QuranProgressService();
   final _player = AudioPlayer();
   final _scrollController = ScrollController();
@@ -34,6 +36,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   String _fontId = 'madina';
   String _readerModeId = 'dark';
   String _layoutId = 'list';
+  bool _tajweed = false;
+  Map<int, Surah> _surahNames = {};
   bool _loading = true;
   bool _error = false;
 
@@ -80,7 +84,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _fontId = await _progress.getFont();
     _readerModeId = await _progress.getReaderMode();
     _layoutId = await _progress.getLayout();
+    _tajweed = await _progress.getTajweed();
     _read = await _progress.readAyahsOf(widget.surah.number);
+    if (_layoutId == 'pages') {
+      // Surah names label the per-page headers spanning multiple surahs.
+      final list = await _service.fetchSurahList();
+      if (mounted) {
+        setState(() => _surahNames = {for (final s in list) s.number: s});
+      }
+    }
     await _loadSurah();
   }
 
@@ -110,10 +122,47 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     });
   }
 
-  Future<void> _toggleLayout() async {
-    final next = _layoutId == 'mushaf' ? 'list' : 'mushaf';
+  static const List<String> _layoutOrder = ['list', 'mushaf', 'pages'];
+
+  Future<void> _cycleLayout() async {
+    final next =
+        _layoutOrder[(_layoutOrder.indexOf(_layoutId) + 1) % _layoutOrder.length];
     await _progress.setLayout(next);
-    setState(() => _layoutId = next);
+    if (next == 'pages' && _surahNames.isEmpty) {
+      final list = await _service.fetchSurahList();
+      if (mounted) {
+        setState(() => _surahNames = {for (final s in list) s.number: s});
+      }
+    }
+    if (mounted) setState(() => _layoutId = next);
+  }
+
+  Future<void> _toggleTajweed() async {
+    final next = !_tajweed;
+    await _progress.setTajweed(next);
+    setState(() => _tajweed = next);
+  }
+
+  IconData get _layoutIcon {
+    switch (_layoutId) {
+      case 'mushaf':
+        return Icons.notes_rounded;
+      case 'pages':
+        return Icons.menu_book_rounded;
+      default:
+        return Icons.view_agenda_outlined;
+    }
+  }
+
+  String get _layoutLabelKey {
+    switch (_layoutId) {
+      case 'mushaf':
+        return 'mushafView';
+      case 'pages':
+        return 'pagesView';
+      default:
+        return 'listView';
+    }
   }
 
   Future<void> _loadSurah() async {
@@ -252,7 +301,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         children: [
           _buildHeader(t),
           Expanded(
-            child: _loading
+            child: _layoutId == 'pages'
+                ? _MushafPagesView(
+                    key: ValueKey('pages_$_tajweed'),
+                    service: _mushaf,
+                    theme: theme,
+                    fontFamily: _font.family,
+                    tajweed: _tajweed,
+                    surahNames: _surahNames,
+                    initialPage: mushafStartPageForSurah(widget.surah.number),
+                  )
+                : _loading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppTheme.primary),
                   )
@@ -262,7 +321,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ? _buildMushafPage(t)
                 : _buildAyahList(t),
           ),
-          if (!_loading && !_error) _buildPlayerBar(t),
+          if (!_loading && !_error && _layoutId != 'pages') _buildPlayerBar(t),
         ],
       ),
     );
@@ -316,15 +375,22 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   ],
                 ),
               ),
+              if (_layoutId == 'pages')
+                IconButton(
+                  tooltip: t.translate('tajweed'),
+                  onPressed: _toggleTajweed,
+                  icon: Icon(
+                    Icons.palette_outlined,
+                    color: _tajweed ? AppTheme.primary : theme.muted,
+                    size: 21,
+                  ),
+                ),
               IconButton(
-                tooltip: t.translate(
-                    _layoutId == 'mushaf' ? 'listView' : 'mushafView'),
-                onPressed: _toggleLayout,
+                tooltip: t.translate(_layoutLabelKey),
+                onPressed: _cycleLayout,
                 icon: Icon(
-                  _layoutId == 'mushaf'
-                      ? Icons.view_agenda_outlined
-                      : Icons.auto_stories_outlined,
-                  color: _layoutId == 'mushaf' ? AppTheme.primary : theme.muted,
+                  _layoutIcon,
+                  color: _layoutId == 'list' ? theme.muted : AppTheme.primary,
                   size: 21,
                 ),
               ),
@@ -337,38 +403,43 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   size: 21,
                 ),
               ),
-              IconButton(
-                tooltip: t.translate('chooseFont'),
-                onPressed: () => _showFontPicker(t),
-                icon: Icon(
-                  Icons.font_download_outlined,
-                  color: theme.muted,
-                  size: 21,
+              if (_layoutId != 'pages') ...[
+                IconButton(
+                  tooltip: t.translate('chooseFont'),
+                  onPressed: () => _showFontPicker(t),
+                  icon: Icon(
+                    Icons.font_download_outlined,
+                    color: theme.muted,
+                    size: 21,
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: t.translate(allRead ? 'unmarkSurahRead' : 'markSurahRead'),
-                onPressed: _toggleWholeSurah,
-                icon: Icon(
-                  allRead
-                      ? Icons.check_circle_rounded
-                      : Icons.check_circle_outline_rounded,
-                  color: allRead ? AppTheme.primary : theme.muted,
-                  size: 22,
+                IconButton(
+                  tooltip: t.translate(
+                      allRead ? 'unmarkSurahRead' : 'markSurahRead'),
+                  onPressed: _toggleWholeSurah,
+                  icon: Icon(
+                    allRead
+                        ? Icons.check_circle_rounded
+                        : Icons.check_circle_outline_rounded,
+                    color: allRead ? AppTheme.primary : theme.muted,
+                    size: 22,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: _ReaderProgressBar(
-              fraction: fraction,
-              trackColor: theme.isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : theme.border,
+          if (_layoutId != 'pages') ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: _ReaderProgressBar(
+                fraction: fraction,
+                trackColor: theme.isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : theme.border,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -2003,6 +2074,353 @@ class _ReaderProgressBar extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Swipeable Madinah-mushaf page view (604 pages). Each page renders the QCF
+/// `code_v2` glyph lines with the matching per-page font, optionally the colour
+/// tajweed (V4) font. Pages flip right-to-left like a printed mushaf.
+class _MushafPagesView extends StatefulWidget {
+  final MushafService service;
+  final ReaderTheme theme;
+  final String fontFamily; // app Arabic font for surah banners / bismillah
+  final bool tajweed;
+  final Map<int, Surah> surahNames;
+  final int initialPage;
+
+  const _MushafPagesView({
+    super.key,
+    required this.service,
+    required this.theme,
+    required this.fontFamily,
+    required this.tajweed,
+    required this.surahNames,
+    required this.initialPage,
+  });
+
+  @override
+  State<_MushafPagesView> createState() => _MushafPagesViewState();
+}
+
+class _MushafPagesViewState extends State<_MushafPagesView> {
+  late final PageController _controller;
+  late int _current;
+
+  @override
+  void initState() {
+    super.initState();
+    _current = widget.initialPage.clamp(1, MushafService.totalPages);
+    _controller = PageController(initialPage: _current - 1);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = widget.theme;
+    return Column(
+      children: [
+        Expanded(
+          child: PageView.builder(
+            controller: _controller,
+            reverse: true, // right-to-left page flow
+            itemCount: MushafService.totalPages,
+            onPageChanged: (i) => setState(() => _current = i + 1),
+            itemBuilder: (context, i) => _MushafPage(
+              key: ValueKey('mushaf_${i + 1}_${widget.tajweed}'),
+              pageNumber: i + 1,
+              service: widget.service,
+              theme: theme,
+              fontFamily: widget.fontFamily,
+              tajweed: widget.tajweed,
+              surahNames: widget.surahNames,
+            ),
+          ),
+        ),
+        // Footer: page number, styled like a printed mushaf folio.
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 6),
+          child: Text(
+            '${t.translate('pageLabel')} $_current',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: theme.muted,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MushafPage extends StatefulWidget {
+  final int pageNumber;
+  final MushafService service;
+  final ReaderTheme theme;
+  final String fontFamily;
+  final bool tajweed;
+  final Map<int, Surah> surahNames;
+
+  const _MushafPage({
+    super.key,
+    required this.pageNumber,
+    required this.service,
+    required this.theme,
+    required this.fontFamily,
+    required this.tajweed,
+    required this.surahNames,
+  });
+
+  @override
+  State<_MushafPage> createState() => _MushafPageState();
+}
+
+class _MushafPageState extends State<_MushafPage>
+    with AutomaticKeepAliveClientMixin {
+  MushafPageData? _data;
+  String? _pageFont;
+  bool _loading = true;
+  bool _error = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    final results = await Future.wait([
+      widget.service.fetchPage(widget.pageNumber),
+      widget.service.ensurePageFont(widget.pageNumber, tajweed: widget.tajweed),
+    ]);
+    if (!mounted) return;
+    final data = results[0] as MushafPageData?;
+    final font = results[1] as String?;
+    setState(() {
+      _data = data;
+      _pageFont = font;
+      _loading = false;
+      _error = data == null || data.rows.isEmpty || font == null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final theme = widget.theme;
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primary),
+      );
+    }
+    if (_error || _data == null || _pageFont == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, color: theme.muted, size: 44),
+              const SizedBox(height: 14),
+              Text(
+                AppLocalizations.of(context).translate('quranLoadError'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: theme.muted, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: _load,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: AppTheme.primary.withValues(alpha: 0.14),
+                    border: Border.all(
+                        color: AppTheme.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context).translate('retry'),
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final data = _data!;
+    final family = _pageFont!;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth - 28;
+        final size = _fitFontSize(data.rows, width, family);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+          child: ClipRect(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final row in data.rows) _buildRow(row, size, family),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Picks one font size for the whole page so a full (widest) line just fills
+  /// the column; shorter surah-ending lines then sit centered at the same size.
+  double _fitFontSize(List<MushafRow> rows, double width, String family) {
+    const base = 32.0;
+    var maxLineWidth = 1.0;
+    for (final row in rows) {
+      if (row.type != MushafRowType.line) continue;
+      final codes = row.words.map((w) => w.code).join();
+      final tp = TextPainter(
+        text: TextSpan(
+          text: codes,
+          style: TextStyle(fontFamily: family, fontSize: base),
+        ),
+        textDirection: TextDirection.rtl,
+        maxLines: 1,
+      )..layout();
+      if (tp.width > maxLineWidth) maxLineWidth = tp.width;
+    }
+    return (base * width / maxLineWidth).clamp(14.0, 40.0);
+  }
+
+  Widget _buildRow(MushafRow row, double size, String family) {
+    final theme = widget.theme;
+    switch (row.type) {
+      case MushafRowType.header:
+        final surah = widget.surahNames[row.surah];
+        return _MushafBanner(
+          theme: theme,
+          fontFamily: widget.fontFamily,
+          arabicName: surah?.nameArabic ?? '',
+          number: row.surah,
+        );
+      case MushafRowType.bismillah:
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Text(
+            'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            style: AppTheme.arabicText(
+              fontSize: size * 0.74,
+              height: 1.4,
+              color: theme.text.withValues(alpha: 0.92),
+              fontFamily: widget.fontFamily,
+            ),
+          ),
+        );
+      case MushafRowType.line:
+        return SizedBox(
+          width: double.infinity,
+          child: Text(
+            row.words.map((w) => w.code).join(),
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            maxLines: 1,
+            style: TextStyle(
+              fontFamily: family,
+              fontSize: size,
+              height: 1.0,
+              // Tajweed colours come from the COLR font itself; the base colour
+              // is used for the plain V2 font.
+              color: theme.text,
+            ),
+          ),
+        );
+    }
+  }
+}
+
+/// Ornamental surah header banner used between surahs on a mushaf page.
+class _MushafBanner extends StatelessWidget {
+  final ReaderTheme theme;
+  final String fontFamily;
+  final String arabicName;
+  final int number;
+
+  const _MushafBanner({
+    required this.theme,
+    required this.fontFamily,
+    required this.arabicName,
+    required this.number,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = theme.isDark
+        ? AppTheme.primary.withValues(alpha: 0.45)
+        : theme.borderCurrent;
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: theme.isDark
+              ? [
+                  AppTheme.primary.withValues(alpha: 0.13),
+                  AppTheme.primaryDeep.withValues(alpha: 0.05),
+                ]
+              : [theme.cardRead, theme.card],
+        ),
+        border: Border.all(color: accent),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.star_outline_rounded,
+              size: 14, color: theme.muted.withValues(alpha: 0.7)),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              arabicName.isEmpty ? 'سورة $number' : 'سورة $arabicName',
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.arabicText(
+                fontSize: 20,
+                height: 1.3,
+                color: theme.text,
+                fontFamily: fontFamily,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Icon(Icons.star_outline_rounded,
+              size: 14, color: theme.muted.withValues(alpha: 0.7)),
+        ],
       ),
     );
   }
