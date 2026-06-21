@@ -2346,7 +2346,7 @@ class _MushafPageState extends State<_MushafPage>
           ),
         );
       case MushafRowType.line:
-        return SizedBox(
+        final Widget line = SizedBox(
           width: double.infinity,
           child: Text(
             row.words.map((w) => w.code).join(),
@@ -2363,8 +2363,25 @@ class _MushafPageState extends State<_MushafPage>
             ),
           ),
         );
+        // The tajweed COLR font bakes its base letters in a dark palette that
+        // can't be recoloured via the text style. On the dark theme, lift the
+        // whole line toward white so the base letters stay readable (the rule
+        // colours wash out to pastel as a side effect).
+        if (widget.tajweed && theme.isDark) {
+          return ColorFiltered(colorFilter: _brightenTajweed, child: line);
+        }
+        return line;
     }
   }
+
+  /// Brightens dark tajweed glyphs toward white (out = in * 0.8 + 185, on the
+  /// 0–255 scale) so the base letters read on a dark page.
+  static const ColorFilter _brightenTajweed = ColorFilter.matrix([
+    0.8, 0, 0, 0, 185, //
+    0, 0.8, 0, 0, 185, //
+    0, 0, 0.8, 0, 185, //
+    0, 0, 0, 1, 0, //
+  ]);
 }
 
 /// Ornamental surah header banner used between surahs on a mushaf page.
