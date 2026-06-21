@@ -2281,14 +2281,29 @@ class _MushafPageState extends State<_MushafPage>
         builder: (context, constraints) {
           final width = constraints.maxWidth - 28;
           final size = _fitFontSize(data.rows, width, family);
+          // A full printed page has 15 lines and is justified to fill the
+          // height. Short pages (e.g. Al-Fatiha) would otherwise get huge gaps
+          // from spaceBetween, so we group them centred with a gentle spacing.
+          final lineCount =
+              data.rows.where((r) => r.type == MushafRowType.line).length;
+          final isSparse = lineCount < 14;
           return Padding(
             padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
             child: ClipRect(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: isSparse
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final row in data.rows) _buildRow(row, size, family),
+                  for (final row in data.rows)
+                    if (isSparse)
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: size * 0.32),
+                        child: _buildRow(row, size, family),
+                      )
+                    else
+                      _buildRow(row, size, family),
                 ],
               ),
             ),
@@ -2426,7 +2441,7 @@ class _MushafBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Flexible(
             child: Text(
-              arabicName.isEmpty ? 'سورة $number' : 'سورة $arabicName',
+              arabicName.isEmpty ? 'سورة $number' : arabicName,
               textAlign: TextAlign.center,
               textDirection: TextDirection.rtl,
               maxLines: 1,
