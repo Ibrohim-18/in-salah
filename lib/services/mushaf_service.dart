@@ -243,6 +243,18 @@ class MushafService {
   }
 
   Future<Uint8List?> _fontBytes(int page, bool tajweed) async {
+    final variant = tajweed ? 'v4/colrv1' : 'v2';
+    final url = '$_fontCdn/$variant/ttf/p$page.ttf';
+
+    // Web has no file system / path_provider: load straight from the network
+    // (the browser HTTP-caches the TTF) and skip disk caching.
+    if (kIsWeb) {
+      final resp = await http.get(Uri.parse(url)).timeout(_timeout);
+      return resp.statusCode == 200 && resp.bodyBytes.isNotEmpty
+          ? resp.bodyBytes
+          : null;
+    }
+
     final dir = await getApplicationSupportDirectory();
     final fontDir = Directory('${dir.path}/mushaf_fonts');
     if (!await fontDir.exists()) await fontDir.create(recursive: true);
@@ -250,8 +262,6 @@ class MushafService {
         File('${fontDir.path}/${tajweed ? 'v4' : 'v2'}_p$page.ttf');
     if (await file.exists()) return file.readAsBytes();
 
-    final variant = tajweed ? 'v4/colrv1' : 'v2';
-    final url = '$_fontCdn/$variant/ttf/p$page.ttf';
     final resp = await http.get(Uri.parse(url)).timeout(_timeout);
     if (resp.statusCode == 200 && resp.bodyBytes.isNotEmpty) {
       await file.writeAsBytes(resp.bodyBytes);
