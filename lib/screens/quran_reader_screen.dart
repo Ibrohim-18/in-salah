@@ -2188,8 +2188,6 @@ class _MushafPageState extends State<_MushafPage>
     with AutomaticKeepAliveClientMixin {
   MushafPageData? _data;
   String? _pageFont;
-  String? _plainFont; // plain V2 font, used for clean (uncoloured) ayah markers
-  bool _plainRequested = false;
   bool _loading = true;
   bool _error = false;
 
@@ -2210,30 +2208,15 @@ class _MushafPageState extends State<_MushafPage>
     final results = await Future.wait([
       widget.service.fetchPage(widget.pageNumber),
       widget.service.ensurePageFont(widget.pageNumber, tajweed: widget.tajweed),
-      // Plain font for the ayah-end markers (kept uncoloured even in tajweed).
-      widget.service.ensurePageFont(widget.pageNumber, tajweed: false),
     ]);
     if (!mounted) return;
     final data = results[0] as MushafPageData?;
     final font = results[1] as String?;
-    final plain = results[2] as String?;
     setState(() {
       _data = data;
       _pageFont = font;
-      _plainFont = plain;
       _loading = false;
       _error = data == null || data.rows.isEmpty || font == null;
-    });
-  }
-
-  /// Loads the plain font for markers on demand — covers hot reload (where
-  /// initState doesn't re-run) so the tajweed marker fix applies without a
-  /// full restart.
-  void _ensurePlainFont() {
-    if (_plainRequested || _plainFont != null) return;
-    _plainRequested = true;
-    widget.service.ensurePageFont(widget.pageNumber, tajweed: false).then((f) {
-      if (mounted && f != null) setState(() => _plainFont = f);
     });
   }
 
@@ -2241,9 +2224,6 @@ class _MushafPageState extends State<_MushafPage>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = widget.theme;
-    if (widget.tajweed && _plainFont == null && !_loading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePlainFont());
-    }
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.primary),
@@ -2389,25 +2369,30 @@ class _MushafPageState extends State<_MushafPage>
           // is used for the plain V2 font.
           color: theme.text,
         );
-        // In tajweed, render the ayah-end markers with the plain V2 font (same
-        // glyph codes) so they stay clean circles instead of being coloured.
-        final useMixed = widget.tajweed && _plainFont != null;
+        // Draw the ayah-end markers ourselves as a clean circled number rather
+        // than the font's ornate (and, in tajweed, coloured) rosette glyph.
         final Widget line = SizedBox(
           width: double.infinity,
           child: Text.rich(
-            useMixed
-                ? TextSpan(
-                    children: [
-                      for (final w in row.words)
-                        TextSpan(
-                          text: w.code,
-                          style: w.isEnd
-                              ? baseStyle.copyWith(fontFamily: _plainFont)
-                              : baseStyle,
+            TextSpan(
+              children: [
+                for (final w in row.words)
+                  if (w.isEnd)
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: size * 0.05),
+                        child: _PageAyahMarker(
+                          number: w.ayah,
+                          diameter: size * 0.92,
+                          color: theme.text,
                         ),
-                    ],
-                  )
-                : TextSpan(text: row.words.map((w) => w.code).join()),
+                      ),
+                    )
+                  else
+                    TextSpan(text: w.code, style: baseStyle),
+              ],
+            ),
             style: baseStyle,
             textAlign: TextAlign.center,
             textDirection: TextDirection.rtl,
@@ -2433,6 +2418,61 @@ class _MushafPageState extends State<_MushafPage>
     0, 0, 0.8, 0, 185, //
     0, 0, 0, 1, 0, //
   ]);
+}
+
+/// Clean circled ayah number drawn at the end of each ayah on a mushaf page —
+/// a simple ring with the number, matching a printed mushaf folio.
+class _PageAyahMarker extends StatelessWidget {
+  final int number;
+  final double diameter;
+  final Color color;
+
+  const _PageAyahMarker({
+    required this.number,
+    required this.diameter,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: diameter,
+      height: diameter,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: 0.05),
+        border: Border.all(
+          color: color.withValues(alpha: 0.55),
+          width: (diameter * 0.05).clamp(0.8, 1.6),
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(diameter * 0.2),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _easternDigits(number),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              height: 1.0,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Renders [n] using Arabic-Indic digits (٠١٢…).
+String _easternDigits(int n) {
+  const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return n
+      .toString()
+      .split('')
+      .map((c) => eastern[int.parse(c)])
+      .join();
 }
 
 /// Ornamental surah header banner used between surahs on a mushaf page.
