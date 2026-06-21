@@ -118,25 +118,66 @@ class MushafService {
   // ----- page layout -----
 
   Future<MushafPageData?> fetchPage(int page) async {
-    final prefs = await SharedPreferences.getInstance();
-    final cacheKey = 'mushaf_page_v2_$page';
+    await _purgeLegacyPrefsCacheOnce();
     try {
       final data = await _fetchRows(page);
       if (data != null && data.rows.isNotEmpty) {
-        await prefs.setString(cacheKey, jsonEncode(data.toJson()));
+        await _writePageCache(page, data);
         return data;
       }
     } catch (e) {
       debugPrint('MushafService.fetchPage($page): $e');
     }
-    final cached = prefs.getString(cacheKey);
-    if (cached != null) {
-      try {
-        return MushafPageData.fromJson(
-            jsonDecode(cached) as Map<String, dynamic>);
-      } catch (_) {}
+    return _readPageCache(page);
+  }
+
+  Future<Directory?> _pageCacheDir() async {
+    if (kIsWeb) return null;
+    final dir = await getApplicationSupportDirectory();
+    final d = Directory('${dir.path}/mushaf_pages');
+    if (!await d.exists()) await d.create(recursive: true);
+    return d;
+  }
+
+  Future<void> _writePageCache(int page, MushafPageData data) async {
+    try {
+      final dir = await _pageCacheDir();
+      if (dir == null) return;
+      await File('${dir.path}/page_$page.json')
+          .writeAsString(jsonEncode(data.toJson()));
+    } catch (_) {}
+  }
+
+  Future<MushafPageData?> _readPageCache(int page) async {
+    try {
+      final dir = await _pageCacheDir();
+      if (dir == null) return null;
+      final file = File('${dir.path}/page_$page.json');
+      if (!await file.exists()) return null;
+      return MushafPageData.fromJson(
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
     }
-    return null;
+  }
+
+  // Earlier builds cached page JSON inside SharedPreferences, bloating the
+  // shared prefs file (which the app rewrites whole on every write, including
+  // prayer ticks). Page caching now lives in files; purge the stale keys once
+  // per session so the shared prefs file shrinks back down.
+  static bool _legacyPurged = false;
+
+  Future<void> _purgeLegacyPrefsCacheOnce() async {
+    if (_legacyPurged) return;
+    _legacyPurged = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stale =
+          prefs.getKeys().where((k) => k.startsWith('mushaf_page_')).toList();
+      for (final k in stale) {
+        await prefs.remove(k);
+      }
+    } catch (_) {}
   }
 
   Future<MushafPageData?> _fetchRows(int page) async {
