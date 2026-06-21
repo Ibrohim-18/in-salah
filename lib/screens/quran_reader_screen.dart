@@ -2189,6 +2189,7 @@ class _MushafPageState extends State<_MushafPage>
   MushafPageData? _data;
   String? _pageFont;
   String? _plainFont; // plain V2 font, used for clean (uncoloured) ayah markers
+  bool _plainRequested = false;
   bool _loading = true;
   bool _error = false;
 
@@ -2225,10 +2226,24 @@ class _MushafPageState extends State<_MushafPage>
     });
   }
 
+  /// Loads the plain font for markers on demand — covers hot reload (where
+  /// initState doesn't re-run) so the tajweed marker fix applies without a
+  /// full restart.
+  void _ensurePlainFont() {
+    if (_plainRequested || _plainFont != null) return;
+    _plainRequested = true;
+    widget.service.ensurePageFont(widget.pageNumber, tajweed: false).then((f) {
+      if (mounted && f != null) setState(() => _plainFont = f);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final theme = widget.theme;
+    if (widget.tajweed && _plainFont == null && !_loading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePlainFont());
+    }
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.primary),
@@ -2304,7 +2319,7 @@ class _MushafPageState extends State<_MushafPage>
                   for (final row in data.rows)
                     if (isSparse)
                       Padding(
-                        padding: EdgeInsets.symmetric(vertical: size * 0.14),
+                        padding: EdgeInsets.symmetric(vertical: size * 0.22),
                         child: _buildRow(row, size, family),
                       )
                     else
