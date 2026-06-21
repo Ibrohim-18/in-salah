@@ -2319,7 +2319,7 @@ class _MushafPageState extends State<_MushafPage>
                   for (final row in data.rows)
                     if (isSparse)
                       Padding(
-                        padding: EdgeInsets.symmetric(vertical: size * 0.22),
+                        padding: EdgeInsets.symmetric(vertical: size * 0.34),
                         child: _buildRow(row, size, family),
                       )
                     else
