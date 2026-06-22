@@ -823,33 +823,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            // Tally pinned to the top-right corner so it sits above the
+            // decorative crescent instead of overlapping its centre.
+            Positioned(
+              top: 8,
+              right: 12,
+              child: IgnorePointer(
+                child: AnimatedDigits(
+                  value: '$_salawatCount',
+                  direction: 1, // a tally only ever climbs
+                  style: AppTheme.numericText(
+                    size: 22,
+                    color: AppTheme.info,
+                    weight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _buildCardIcon(Icons.favorite_rounded, AppTheme.info),
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerRight,
-                          child: AnimatedDigits(
-                            value: '$_salawatCount',
-                            direction: 1, // a tally only ever climbs
-                            style: AppTheme.numericText(
-                              size: 22,
-                              color: AppTheme.info,
-                              weight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildCardIcon(Icons.favorite_rounded, AppTheme.info),
                   const SizedBox(height: 12),
                   Text(
                     t.translate('salawat'),
