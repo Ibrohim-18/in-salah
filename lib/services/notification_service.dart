@@ -131,7 +131,12 @@ class NotificationService {
     // Separate channels for custom adhan and iqama sounds. Android locks a
     // channel's sound after it is created, so every custom sound gets its own
     // stable channel id.
-    for (final sound in ['adhan_makkah', 'adhan_madina', 'iqama_chime']) {
+    for (final sound in [
+      'adhan_makkah',
+      'adhan_madina',
+      'adhan_fajr',
+      'iqama_chime',
+    ]) {
       await create(
         AndroidNotificationChannel(
           _customSoundChannelId(sound),

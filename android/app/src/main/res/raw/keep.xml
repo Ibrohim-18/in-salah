@@ -6,4 +6,4 @@
      silently kills every scheduled notification in release builds. Force the
      shrinker to keep them. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_stat_notification,@raw/adhan_makkah,@raw/adhan_madina,@raw/iqama_chime" />
+    tools:keep="@drawable/ic_stat_notification,@raw/adhan_makkah,@raw/adhan_madina,@raw/adhan_fajr,@raw/iqama_chime" />

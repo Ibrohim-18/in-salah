@@ -1319,6 +1319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'silent' => t.translate('muted'),
       'adhan_makkah' => t.translate('adhanMakkah'),
       'adhan_madina' => t.translate('adhanMadina'),
+      'adhan_fajr' => t.translate('adhanFajr'),
       'iqama_chime' => t.translate('iqamaChime'),
       _ => isIqama ? t.translate('iqamaChime') : t.translate('standard'),
     };
@@ -1847,6 +1848,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onSelected: setAdhanSound,
                       assetPath: 'audio/adhan_madina.mp3',
                     ),
+                    // The Fajr adhan has its own call ("prayer is better than
+                    // sleep"), so only offer it on the Fajr picker.
+                    if (prayer == 'Fajr')
+                      buildOption(
+                        t.translate('adhanFajr'),
+                        'adhan_fajr',
+                        selectedValue: currentSettings.sound,
+                        onSelected: setAdhanSound,
+                        assetPath: 'audio/adhan_fajr.mp3',
+                      ),
                     const Divider(color: AppTheme.surfaceBorder, height: 22),
                     _buildPickerSectionLabel(t.translate('iqama')),
                     buildOption(
