@@ -508,6 +508,13 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
+    // When adhan / iqama is set to silent in settings, show a struck-through
+    // bell so the user can see at a glance that this prayer won't make a sound.
+    final soundSettings =
+        provider.settings.prayerSettings[nextPrayer?.name ?? 'Fajr'];
+    final adhanMuted = soundSettings?.sound == 'silent';
+    final iqamaMuted = soundSettings?.iqamaSound == 'silent';
+
     final isIqamaPhase =
         nextPrayer != null && now.isAfter(nextAdhan) && now.isBefore(nextIqama);
     final targetTime = isIqamaPhase ? nextIqama : nextAdhan;
@@ -692,7 +699,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               children: [
                                 _buildCountdownMetric(
-                                  icon: Icons.notifications_active_rounded,
+                                  icon: adhanMuted
+                                      ? Icons.notifications_off_rounded
+                                      : Icons.notifications_active_rounded,
                                   label: t.translate('adhan'),
                                   value: AppUtils.formatTime(nextAdhan),
                                   accent: activeColor,
@@ -700,7 +709,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 10),
                                 _buildCountdownMetric(
-                                  icon: Icons.notifications_active_rounded,
+                                  icon: iqamaMuted
+                                      ? Icons.notifications_off_rounded
+                                      : Icons.notifications_active_rounded,
                                   label: t.translate('iqama'),
                                   value: AppUtils.formatTime(nextIqama),
                                   accent: activeColor,
