@@ -33,7 +33,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  static const _channelVersion = 'v2';
+  static const _channelVersion = 'v3';
   static const _silentSound = 'silent';
   static const _prayerChannelId = 'prayer_reminders_$_channelVersion';
   static const _silentChannelId = 'prayer_reminders_silent_$_channelVersion';
@@ -96,6 +96,22 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     if (androidPlugin == null) return;
+
+    // Android locks a channel's sound at creation time, so a replaced custom
+    // sound keeps playing the old audio until the channel id changes. Bumping
+    // _channelVersion gives the new channels fresh ids; prune the stale ones
+    // from earlier versions so they don't linger in the user's settings.
+    try {
+      final existing = await androidPlugin.getNotificationChannels();
+      for (final ch in existing ?? const []) {
+        if (ch.id.startsWith('prayer_reminders') &&
+            !ch.id.endsWith('_$_channelVersion')) {
+          await androidPlugin.deleteNotificationChannel(ch.id);
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to prune old notification channels: $e');
+    }
 
     Future<void> create(AndroidNotificationChannel channel) async {
       try {
