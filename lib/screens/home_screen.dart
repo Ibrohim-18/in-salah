@@ -839,7 +839,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           alignment: Alignment.centerRight,
                           // Nudge just the tally a little up toward the corner.
                           child: Transform.translate(
-                            offset: const Offset(0, -6),
+                            offset: const Offset(0, -10),
                             child: AnimatedDigits(
                               value: '$_salawatCount',
                               direction: 1, // a tally only ever climbs
