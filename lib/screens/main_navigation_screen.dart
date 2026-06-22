@@ -98,14 +98,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+        padding: const EdgeInsets.fromLTRB(34, 0, 34, 8),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(26),
+                borderRadius: BorderRadius.circular(32),
                 color: Colors.white.withValues(alpha: 0.02),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.20),
@@ -127,10 +127,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     right: 0,
                     child: IgnorePointer(
                       child: Container(
-                        height: 22,
+                        height: 18,
                         decoration: BoxDecoration(
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(26),
+                            top: Radius.circular(32),
                           ),
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -144,28 +144,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       ),
                     ),
                   ),
-                  // Bright top edge highlight.
-                  Positioned(
-                    top: 1,
-                    left: 40,
-                    right: 40,
-                    child: IgnorePointer(
-                      child: Container(
-                        height: 1,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              Colors.white.withValues(alpha: 0.30),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
                       children: List.generate(_destinations.length, (index) {
                         final destination = _destinations[index];
@@ -214,7 +194,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Icon(
               isSelected ? destination.selectedIcon : destination.icon,
               color: color,
-              size: 22,
+              size: 20,
             ),
         onTap: () => setState(() => _currentIndex = index),
       ),
@@ -248,19 +228,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       return Icon(
         isSelected ? destination.selectedIcon : destination.icon,
         color: color,
-        size: 22,
+        size: 20,
       );
     }
 
     final fallback = Icon(
       isSelected ? destination.selectedIcon : destination.icon,
       color: color,
-      size: 22,
+      size: 20,
     );
 
     return Container(
-      width: 22,
-      height: 22,
+      width: 20,
+      height: 20,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppTheme.surfaceRaised,
@@ -336,14 +316,14 @@ class _NavBarItemState extends State<_NavBarItem> {
         duration: const Duration(milliseconds: 130),
         curve: Curves.easeOut,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 3),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Icon with a soft, blurred glow that blooms in when active.
               SizedBox(
-                width: 26,
-                height: 26,
+                width: 24,
+                height: 24,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -382,7 +362,7 @@ class _NavBarItemState extends State<_NavBarItem> {
                   ],
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
