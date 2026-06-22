@@ -700,7 +700,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 10),
                                 _buildCountdownMetric(
-                                  icon: Icons.self_improvement_rounded,
+                                  icon: Icons.notifications_active_rounded,
                                   label: t.translate('iqama'),
                                   value: AppUtils.formatTime(nextIqama),
                                   accent: activeColor,
