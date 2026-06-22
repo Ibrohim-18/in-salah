@@ -1688,6 +1688,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surface,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1800,81 +1801,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               child: SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceBorder,
-                        borderRadius: BorderRadius.circular(2),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      '${t.translate('adhanSoundTitle')} · ${_prayerDisplayName(prayer, t)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                      const SizedBox(height: 20),
+                      Text(
+                        '${t.translate('adhanSoundTitle')} · ${_prayerDisplayName(prayer, t)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildPickerSectionLabel(t.translate('adhan')),
-                    buildOption(
-                      t.translate('standardNotification'),
-                      'default',
-                      selectedValue: currentSettings.sound,
-                      onSelected: setAdhanSound,
-                    ),
-                    buildOption(
-                      t.translate('muted'),
-                      'silent',
-                      selectedValue: currentSettings.sound,
-                      onSelected: setAdhanSound,
-                    ),
-                    buildOption(
-                      t.translate('adhanMakkahFull'),
-                      'adhan_makkah',
-                      selectedValue: currentSettings.sound,
-                      onSelected: setAdhanSound,
-                      assetPath: 'audio/adhan_makkah.mp3',
-                    ),
-                    buildOption(
-                      t.translate('adhanMadinaFull'),
-                      'adhan_madina',
-                      selectedValue: currentSettings.sound,
-                      onSelected: setAdhanSound,
-                      assetPath: 'audio/adhan_madina.mp3',
-                    ),
-                    // The Fajr adhan has its own call ("prayer is better than
-                    // sleep"), so only offer it on the Fajr picker.
-                    if (prayer == 'Fajr')
+                      const SizedBox(height: 16),
+                      _buildPickerSectionLabel(t.translate('adhan')),
                       buildOption(
-                        t.translate('adhanFajr'),
-                        'adhan_fajr',
+                        t.translate('standardNotification'),
+                        'default',
                         selectedValue: currentSettings.sound,
                         onSelected: setAdhanSound,
-                        assetPath: 'audio/adhan_fajr.mp3',
                       ),
-                    const Divider(color: AppTheme.surfaceBorder, height: 22),
-                    _buildPickerSectionLabel(t.translate('iqama')),
-                    buildOption(
-                      t.translate('iqamaChime'),
-                      'iqama_chime',
-                      selectedValue: currentSettings.iqamaSound,
-                      onSelected: setIqamaSound,
-                      assetPath: 'audio/iqama_chime.wav',
-                    ),
-                    buildOption(
-                      t.translate('muted'),
-                      'silent',
-                      selectedValue: currentSettings.iqamaSound,
-                      onSelected: setIqamaSound,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                      buildOption(
+                        t.translate('muted'),
+                        'silent',
+                        selectedValue: currentSettings.sound,
+                        onSelected: setAdhanSound,
+                      ),
+                      buildOption(
+                        t.translate('adhanMakkahFull'),
+                        'adhan_makkah',
+                        selectedValue: currentSettings.sound,
+                        onSelected: setAdhanSound,
+                        assetPath: 'audio/adhan_makkah.mp3',
+                      ),
+                      buildOption(
+                        t.translate('adhanMadinaFull'),
+                        'adhan_madina',
+                        selectedValue: currentSettings.sound,
+                        onSelected: setAdhanSound,
+                        assetPath: 'audio/adhan_madina.mp3',
+                      ),
+                      // The Fajr adhan has its own call ("prayer is better than
+                      // sleep"), so only offer it on the Fajr picker.
+                      if (prayer == 'Fajr')
+                        buildOption(
+                          t.translate('adhanFajr'),
+                          'adhan_fajr',
+                          selectedValue: currentSettings.sound,
+                          onSelected: setAdhanSound,
+                          assetPath: 'audio/adhan_fajr.mp3',
+                        ),
+                      const Divider(color: AppTheme.surfaceBorder, height: 22),
+                      _buildPickerSectionLabel(t.translate('iqama')),
+                      buildOption(
+                        t.translate('iqamaChime'),
+                        'iqama_chime',
+                        selectedValue: currentSettings.iqamaSound,
+                        onSelected: setIqamaSound,
+                        assetPath: 'audio/iqama_chime.wav',
+                      ),
+                      buildOption(
+                        t.translate('muted'),
+                        'silent',
+                        selectedValue: currentSettings.iqamaSound,
+                        onSelected: setIqamaSound,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1987,15 +1990,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: t.translate('language'),
       selectedValue: provider.settings.locale,
       options: [
-        (value: 'system', label: t.translate('systemLanguage'), description: null),
+        (
+          value: 'system',
+          label: t.translate('systemLanguage'),
+          description: null,
+        ),
         (value: 'en', label: t.translate('english'), description: null),
         (value: 'ru', label: t.translate('russian'), description: null),
         (value: 'ar', label: t.translate('arabicLang'), description: null),
         (value: 'tg', label: t.translate('tajik'), description: null),
       ],
-      onSelected: (value) => provider.updateSettings(
-        provider.settings.copyWith(locale: value),
-      ),
+      onSelected: (value) =>
+          provider.updateSettings(provider.settings.copyWith(locale: value)),
     );
   }
 
@@ -2014,7 +2020,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           label: t.translate('muslimWorldLeague'),
           description: null,
         ),
-        (value: 'umm_al_qura', label: t.translate('ummAlQura'), description: null),
+        (
+          value: 'umm_al_qura',
+          label: t.translate('ummAlQura'),
+          description: null,
+        ),
         (value: 'isna', label: t.translate('isna'), description: null),
         (value: 'egyptian', label: t.translate('egyptian'), description: null),
         (value: 'karachi', label: t.translate('karachi'), description: null),
